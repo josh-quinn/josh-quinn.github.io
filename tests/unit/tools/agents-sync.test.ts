@@ -104,6 +104,36 @@ describe('syncAgents', () => {
     expect(existsSync(join(outDirs.claude, 'x.md'))).toBe(true);
   });
 
+  it('prunes the old output when the name in a kept source changes', () => {
+    syncAgents(src, outDirs);
+    writeFileSync(join(src, 'x.md'), SOURCE.replace('name: x', 'name: renamed'));
+    syncAgents(src, outDirs);
+    expect(existsSync(join(outDirs.claude, 'x.md'))).toBe(false);
+    expect(existsSync(join(outDirs.copilot, 'x.agent.md'))).toBe(false);
+    expect(existsSync(join(outDirs.claude, 'renamed.md'))).toBe(true);
+    expect(existsSync(join(outDirs.copilot, 'renamed.agent.md'))).toBe(true);
+  });
+
+  it('keeps hand-written files that only mention the generated header in prose', () => {
+    syncAgents(src, outDirs);
+    const note = '<!-- generated from agents/src/x.md \u2014 do not edit -->';
+    const prose = join(outDirs.claude, 'prose.md');
+    const bodyNote = join(outDirs.copilot, 'bodynote.agent.md');
+    writeFileSync(prose, `---\nname: prose\n---\nThe files are marked "${note}" by the tool.\n`);
+    writeFileSync(bodyNote, `---\nname: bodynote\n---\nIntro.\n${note}\n`);
+    syncAgents(src, outDirs);
+    expect(existsSync(prose)).toBe(true);
+    expect(existsSync(bodyNote)).toBe(true);
+  });
+
+  it('skips a directory named like an agent file instead of throwing', () => {
+    syncAgents(src, outDirs);
+    mkdirSync(join(outDirs.claude, 'dir.md'));
+    mkdirSync(join(outDirs.copilot, 'dir.agent.md'));
+    expect(() => syncAgents(src, outDirs)).not.toThrow();
+    expect(existsSync(join(outDirs.claude, 'dir.md'))).toBe(true);
+  });
+
   it('accepts CRLF sources and renders the same output as LF', () => {
     syncAgents(src, outDirs);
     const lf = readFileSync(join(outDirs.claude, 'x.md'), 'utf8');

@@ -1,6 +1,6 @@
 // Renders agents/src/*.md into Claude Code and Copilot CLI agent files.
 // Run: npm run agents:sync
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
@@ -69,18 +69,19 @@ function writeIfChanged(path: string, content: string): void {
   writeFileSync(path, content);
 }
 
-const GENERATED_RE = /^<!-- generated from agents\/src\/([^\s>]+\.md) — do not edit -->$/m;
+// The generated note sits directly after the frontmatter (see render()).
+const GENERATED_RE = /^---\n[\s\S]*?\n---\n<!-- generated from agents\/src\/[^\s>]+\.md \u2014 do not edit -->\n/;
 
-// Remove generated files (identified by our header) whose source no longer exists.
-// Files without the header are hand-written and never touched.
-function pruneStale(dir: string, suffix: string, keep: Set<string>, srcFiles: Set<string>): void {
+// Remove generated files (identified by our header in the note position) that this run
+// did not write: covers removed sources and renamed `name:` values. Files without the
+// header are hand-written and never touched; non-files are skipped.
+function pruneStale(dir: string, suffix: string, keep: Set<string>): void {
   if (!existsSync(dir)) return;
   for (const f of readdirSync(dir)) {
     if (!f.endsWith(suffix)) continue;
     const path = join(dir, f);
-    if (keep.has(path)) continue;
-    const m = GENERATED_RE.exec(readFileSync(path, 'utf8'));
-    if (m && !srcFiles.has(m[1])) unlinkSync(path);
+    if (keep.has(path) || !statSync(path).isFile()) continue;
+    if (GENERATED_RE.test(readFileSync(path, 'utf8').replace(/\r\n?/g, '\n'))) unlinkSync(path);
   }
 }
 
@@ -114,9 +115,8 @@ export function syncAgents(srcDir: string, outDirs: OutDirs): string[] {
     written.push(claudePath, copilotPath);
   }
   const keep = new Set(written);
-  const srcFiles = new Set(files);
-  pruneStale(outDirs.claude, '.md', keep, srcFiles);
-  pruneStale(outDirs.copilot, '.agent.md', keep, srcFiles);
+  pruneStale(outDirs.claude, '.md', keep);
+  pruneStale(outDirs.copilot, '.agent.md', keep);
   return written;
 }
 
