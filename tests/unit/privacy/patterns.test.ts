@@ -41,6 +41,12 @@ describe('assertNoPrivateData', () => {
     expect(() => assertNoPrivateData('<p>2026-10-24 (5 stars)</p>', PRIVATE_PATTERNS)).not.toThrow();
   });
 
+  it('still detects a phone after a date or year range', () => {
+    const local = ['087', '123', '4567'].join(' ');
+    expect(() => assertNoPrivateData(`<p>updated 2026-11-22 ${local}</p>`, PRIVATE_PATTERNS)).toThrow(/phone/);
+    expect(() => assertNoPrivateData(`<p>2019 - 2023 ${local}</p>`, PRIVATE_PATTERNS)).toThrow(/phone/);
+  });
+
   it('detects DOB-like, passport and ENG1', () => {
     expect(() => assertNoPrivateData(`<p>${fakeDob}</p>`, PRIVATE_PATTERNS)).toThrow(/date-of-birth/);
     expect(() => assertNoPrivateData('<p>Passport</p>', PRIVATE_PATTERNS)).toThrow(/passport/);

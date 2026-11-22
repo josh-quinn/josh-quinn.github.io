@@ -13,13 +13,14 @@ regex = '''[\w.+-]+@[\w-]+\.[\w.]+'''
 keywords = ["@"]
 
 [[rules.allowlists]]
-description = "Non-personal addresses: git SSH remote user, GitHub noreply, tool attribution noreply, and npm package@version refs (domain part starts with a digit, e.g. a pinned package version in an ADR)"
+description = "Non-personal addresses: git SSH remote user, GitHub noreply, tool attribution noreply, and npm package@version refs (three-part version, e.g. a pinned package in an ADR). All entries are anchored to the whole match."
 regexTarget = "match"
 regexes = [
-  '''git@github\.com''',
-  '''[\w.+-]+@users\.noreply\.github\.com''',
-  '''noreply@anthropic\.com''',
-  '''@\d+\.\d+''',
+  '''^git@github\.com$''',
+  '''^[\w.+-]+@users\.noreply\.github\.com$''',
+  '''^noreply@anthropic\.com$''',
+  # package@semver, three numeric parts, optional suffix.
+  '''^[\w.+-]+@v?\d+\.\d+\.\d+[\w.+-]*$''',
 ]
 
 [[rules]]
@@ -32,11 +33,12 @@ keywords = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 description = "Date-shaped matches (YYYY-MM-DD, YYYY-MM, year ranges) and dotted version strings"
 regexTarget = "match"
 regexes = [
-  # The phone regex can swallow a few characters after/before a date, so allow a date at either end of the match.
-  '''^\d{4}-\d{2}(-\d{2})?(\D|$)''',
-  '''(^|\D)\d{4}-\d{2}(-\d{2})?$''',
-  '''^\d{4}\s*-\s*\d{4}(\D|$)''',
-  '''(^|\D)\d{4}\s*-\s*\d{4}$''',
+  # Whole match must be a date, optionally with at most 3 stray digits (plus separators)
+  # swallowed on one side, so a phone number next to a date (7+ digits) is still reported.
+  '''^\d{4}-\d{2}(-\d{2})?[\s().-]*\d{0,3}$''',
+  '''^\d{0,3}[\s().-]*\d{4}-\d{2}(-\d{2})?$''',
+  '''^\d{4}\s*-\s*\d{4}[\s().-]*\d{0,3}$''',
+  '''^\d{0,3}[\s().-]*\d{4}\s*-\s*\d{4}$''',
   '''^v?\d+(\.\d+){2,}$''',
 ]
 
@@ -48,4 +50,4 @@ keywords = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct"
 
 [allowlist]
 description = "The privacy pattern file contains regexes only, no values"
-paths = ['''tests/privacy/patterns\.ts''']
+paths = ['''^tests/privacy/patterns\.ts$''']

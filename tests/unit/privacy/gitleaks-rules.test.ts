@@ -44,4 +44,24 @@ describe('.gitleaks.toml', () => {
     const { status, rules } = scan(ok);
     expect({ status, rules }).toEqual({ status: 0, rules: [] });
   });
+
+  it('still flags a phone after a date, or after a year range', () => {
+    const local = ['087', '123', '4567'].join(' ');
+    expect(scan(`updated 2026-11-22 ${local}`).rules).toContain('pii-phone');
+    expect(scan(`worked 2019 - 2023 ${local}`).rules).toContain('pii-phone');
+    expect(scan(`${local} 2026-11-22`).rules).toContain('pii-phone');
+  });
+
+  it('flags lookalike addresses that only contain an allowlisted one', () => {
+    const lookalikes = [
+      ['legit', 'github.com'].join('@'),
+      ['x.git', 'github.com'].join('@'),
+      ['git', 'github.com.evil.org'].join('@'),
+      ['mynoreply', 'anthropic.com'].join('@'),
+      ['someone', '1.2.example.org'].join('@'),
+    ];
+    for (const addr of lookalikes) {
+      expect(scan(`contact ${addr}\n`).rules, 'lookalike should be flagged').toContain('pii-email');
+    }
+  });
 });
