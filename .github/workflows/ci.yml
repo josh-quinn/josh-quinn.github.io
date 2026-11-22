@@ -93,3 +93,41 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
+
+  # Task gate, pull requests only. The task id comes from the PR head branch
+  # task/<id>-<slug>; other branches pass with a notice. The head ref is passed through
+  # an env var, never interpolated into the script.
+  integrity:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The Gate-Test-Author commit must be reachable.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Acceptance tests unchanged since the test-author commit
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: npm run gate -- integrity --branch "$HEAD_REF"
+
+  verdict:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # Default pull_request checkout is the merge commit, so this checks the exact tree
+      # being merged: a branch behind main fails until it is rebased and re-gated.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Passing gate verdict for this tree
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: npm run gate -- verify --branch "$HEAD_REF"

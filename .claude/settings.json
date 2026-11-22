@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/tools/gate/guard.ts\" --agent claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+# Git hooks (ADR 0001: lefthook, exact-pinned devDependency).
+# `npm install` runs `lefthook install`, which writes .git/hooks/pre-push.
+pre-push:
+  jobs:
+    - name: gate
+      # task/<id>-<slug> branches: `gate verify <id>`, else `gate task <id>`; blocks on failure.
+      # Other branches: prints a one-line notice and passes.
+      run: npx tsx tools/gate/cli.ts pre-push
