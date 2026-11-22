@@ -95,33 +95,37 @@ jobs:
           if-no-files-found: ignore
 
   # Task gate, pull requests only. The task id comes from the PR head branch
-  # task/<id>-<slug>; other branches pass with a notice. The head ref is passed through
-  # an env var, never interpolated into the script.
+  # task/<id>-<slug>. Other branches pass with a notice, unless they change anything under
+  # tests/acceptance/ or .gate/ against the PR base, which fails. Branch names reach the
+  # scripts through env vars, never interpolated into them. Both jobs diff against the PR
+  # base (origin/<base>), so they need the full history.
   integrity:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          # The Gate-Test-Author commit must be reachable.
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Acceptance tests unchanged since the test-author commit
+      - name: Tests first, and unchanged since the test-author commit
         env:
           HEAD_REF: ${{ github.head_ref }}
-        run: npm run gate -- integrity --branch "$HEAD_REF"
+          BASE_REF: ${{ github.base_ref }}
+        run: npm run gate -- integrity --branch "$HEAD_REF" --base "origin/$BASE_REF"
 
   verdict:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       # Default pull_request checkout is the merge commit, so this checks the exact tree
-      # being merged: a branch behind main fails until it is rebased and re-gated.
+      # being merged: a branch behind its base fails until it is rebased and re-gated.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -130,4 +134,5 @@ jobs:
       - name: Passing gate verdict for this tree
         env:
           HEAD_REF: ${{ github.head_ref }}
-        run: npm run gate -- verify --branch "$HEAD_REF"
+          BASE_REF: ${{ github.base_ref }}
+        run: npm run gate -- verify --branch "$HEAD_REF" --base "origin/$BASE_REF"

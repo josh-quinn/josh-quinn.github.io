@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { contentTreeHash } from '../../../tools/gate/treehash';
 import { commitAll, git, isolateEnv, makeRepo, write } from './helpers';
@@ -13,6 +14,11 @@ afterEach(() => restore());
 describe('contentTreeHash', () => {
   it('is a sha256 hex digest', () => {
     expect(contentTreeHash('HEAD', repo)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('hashes the NUL-joined ls-tree entries (a newline in a path cannot forge another entry)', () => {
+    const entries = git(repo, 'ls-tree', '-r', '-z', '--full-tree', 'HEAD').split('\0').filter(Boolean);
+    expect(contentTreeHash('HEAD', repo)).toBe(createHash('sha256').update(entries.join('\0')).digest('hex'));
   });
 
   it('is unchanged when only .gate/x changes', () => {

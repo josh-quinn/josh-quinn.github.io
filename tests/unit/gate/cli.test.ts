@@ -245,6 +245,7 @@ describe('gate verify', () => {
 describe('gate integrity', () => {
   it('exits 0 when the authored tests are untouched, 1 with the changed files otherwise', async () => {
     const repo = repoWith(PASSING);
+    git(repo, 'checkout', '-q', '-b', 'task/T1-x');
     write(repo, 'tests/acceptance/T1/a.spec.ts', 'a\n');
     git(repo, 'add', '-A');
     git(repo, 'commit', '-q', '-m', 'test: a\n\nGate-Test-Author: T1');
@@ -291,6 +292,59 @@ describe('branch handling', () => {
   it('--branch with a malformed task branch exits 2', async () => {
     expect((await gate(repoWith(PASSING), 'verify', '--branch', 'task/-x')).code).toBe(2);
   });
+
+  // Review finding 4: a non-task PR must not slip changes to protected paths past enforcement.
+  describe('a non-task branch that changes protected paths', () => {
+    function nonTaskRepo(files: Record<string, string>): string {
+      const repo = repoWith(PASSING);
+      git(repo, 'checkout', '-q', '-b', 'chore/tidy');
+      for (const [rel, text] of Object.entries(files)) write(repo, rel, text);
+      commitAll(repo, 'chore: tidy');
+      return repo;
+    }
+
+    it.each(['verify', 'integrity'])('%s fails when tests/acceptance/** changed against the base', async (cmd) => {
+      const repo = nonTaskRepo({ 'tests/acceptance/T1/a.spec.ts': 'x\n' });
+      const res = await gate(repo, cmd, '--branch', 'chore/tidy', '--base', 'main');
+      expect(res.code).toBe(1);
+      expect(res.err).toContain('tests/acceptance/T1/a.spec.ts');
+    });
+
+    it.each(['verify', 'integrity'])('%s fails when .gate/** changed against the base', async (cmd) => {
+      const repo = nonTaskRepo({ '.gate/T1/verdict.json': '{}\n' });
+      const res = await gate(repo, cmd, '--branch', 'chore/tidy', '--base', 'main');
+      expect(res.code).toBe(1);
+      expect(res.err).toContain('.gate/T1/verdict.json');
+    });
+
+    it.each(['verify', 'integrity'])('%s still passes with a notice for other changes', async (cmd) => {
+      const repo = nonTaskRepo({ 'src/b': 'b\n' });
+      const res = await gate(repo, cmd, '--branch', 'chore/tidy', '--base', 'main');
+      expect(res.code).toBe(0);
+      expect(res.out).toMatch(/not a task branch/i);
+    });
+
+    it('uses origin/main or main when no --base is given', async () => {
+      const repo = nonTaskRepo({ 'tests/acceptance/T1/a.spec.ts': 'x\n' });
+      expect((await gate(repo, 'verify', '--branch', 'chore/tidy')).code).toBe(1);
+    });
+
+    it('exits 2 when the given --base does not resolve', async () => {
+      const repo = nonTaskRepo({ 'src/b': 'b\n' });
+      expect((await gate(repo, 'verify', '--branch', 'chore/tidy', '--base', 'origin/nope')).code).toBe(2);
+    });
+  });
+
+  it('verify on a task branch fails when the branch changes another task\'s .gate/ folder', async () => {
+    const repo = repoWith(PASSING);
+    git(repo, 'checkout', '-q', '-b', 'task/T1-x');
+    await gate(repo, 'task', 'T1');
+    write(repo, '.gate/T2/verdict.json', '{}\n');
+    commitGate(repo);
+    const res = await gate(repo, 'verify', '--branch', 'task/T1-x', '--base', 'main');
+    expect(res.code).toBe(1);
+    expect(res.err).toContain('.gate/T2/verdict.json');
+  });
 });
 
 describe('gate pre-push', () => {
@@ -328,6 +382,102 @@ describe('gate pre-push', () => {
     const repo = repoWith(PASSING);
     git(repo, 'checkout', '-q', '-b', 'task/-x');
     expect((await gate(repo, 'pre-push')).code).toBe(2);
+  });
+
+  // Review finding 3: enforce on what is pushed (stdin refs), not on the checked-out branch.
+  describe('with the refs git passes on stdin', () => {
+    const ZERO = '0'.repeat(40);
+    const line = (localRef: string, sha: string, remoteRef: string) => `${localRef} ${sha} ${remoteRef} ${ZERO}\n`;
+    async function prePush(repo: string, stdin: string) {
+      const c = captureIo(repo, stdin);
+      const code = await main(['pre-push'], c.io);
+      return { code, out: c.out(), err: c.err() };
+    }
+    /** A task branch whose tip has a committed passing verdict; returns [repo, tipSha]. */
+    async function gatedBranch(): Promise<[string, string]> {
+      const repo = repoWith(PASSING);
+      git(repo, 'checkout', '-q', '-b', 'task/T1-x');
+      write(repo, 'src/b', 'b\n');
+      commitAll(repo, 'feat: b');
+      await gate(repo, 'task', 'T1');
+      commitGate(repo);
+      return [repo, git(repo, 'rev-parse', 'HEAD')];
+    }
+
+    it('enforces a pushed task branch while another branch is checked out', async () => {
+      const repo = repoWith(PASSING);
+      git(repo, 'checkout', '-q', '-b', 'task/T1-x');
+      write(repo, 'src/b', 'b\n');
+      commitAll(repo, 'feat: b, no verdict');
+      const sha = git(repo, 'rev-parse', 'HEAD');
+      git(repo, 'checkout', '-q', 'main');
+      const res = await prePush(repo, line('refs/heads/task/T1-x', sha, 'refs/heads/task/T1-x'));
+      expect(res.code).toBe(1);
+      expect(res.err).toMatch(/T1/);
+      // It must not run the gate on the checked-out main instead.
+      expect(readVerdict('T1', repo)).toBeNull();
+    });
+
+    it('enforces HEAD:task/<id>-<slug> from a detached HEAD', async () => {
+      const repo = repoWith(PASSING);
+      git(repo, 'checkout', '-q', '--detach');
+      const sha = git(repo, 'rev-parse', 'HEAD');
+      expect((await prePush(repo, line('HEAD', sha, 'refs/heads/task/T1-x'))).code).toBe(1);
+    });
+
+    it('passes when the pushed commit carries a passing verdict for its own tree', async () => {
+      const [repo, sha] = await gatedBranch();
+      git(repo, 'checkout', '-q', 'main');
+      expect((await prePush(repo, line('refs/heads/task/T1-x', sha, 'refs/heads/task/T1-x'))).code).toBe(0);
+    });
+
+    it('verifies the pushed SHA, not HEAD', async () => {
+      const [repo, gatedSha] = await gatedBranch();
+      const ungated = git(repo, 'rev-parse', 'HEAD~2');
+      // HEAD is gated, but the pushed commit is an older one without a verdict.
+      expect((await prePush(repo, line('refs/heads/task/T1-x', ungated, 'refs/heads/task/T1-x'))).code).toBe(1);
+      // HEAD moved on without a verdict, but the pushed commit is the gated one.
+      write(repo, 'src/c', 'c\n');
+      commitAll(repo, 'feat: c, not gated');
+      expect((await prePush(repo, line('refs/heads/task/T1-x', gatedSha, 'refs/heads/task/T1-x'))).code).toBe(0);
+    });
+
+    it('fails when the verdict exists only in the working tree, not in the pushed commit', async () => {
+      const repo = repoWith(PASSING);
+      git(repo, 'checkout', '-q', '-b', 'task/T1-x');
+      await gate(repo, 'task', 'T1');
+      const sha = git(repo, 'rev-parse', 'HEAD');
+      const res = await prePush(repo, line('refs/heads/task/T1-x', sha, 'refs/heads/task/T1-x'));
+      expect(res.code).toBe(1);
+    });
+
+    it('passes a deletion of a remote task branch (zero SHA)', async () => {
+      const repo = repoWith(FAILING);
+      expect((await prePush(repo, line('(delete)', ZERO, 'refs/heads/task/T1-x'))).code).toBe(0);
+    });
+
+    it('passes a non-task branch and ignores tags, even while a task branch is checked out', async () => {
+      const repo = repoWith(FAILING);
+      git(repo, 'checkout', '-q', '-b', 'task/T1-x');
+      const sha = git(repo, 'rev-parse', 'HEAD');
+      const stdin = line('refs/heads/main', sha, 'refs/heads/main') + line('refs/tags/v1', sha, 'refs/tags/v1');
+      const res = await prePush(repo, stdin);
+      expect(res.code).toBe(0);
+      expect(res.out).toMatch(/not a task branch/i);
+    });
+
+    it('blocks when any one of several pushed refs fails', async () => {
+      const [repo, sha] = await gatedBranch();
+      const bad = git(repo, 'rev-parse', 'HEAD~2');
+      const stdin = line('refs/heads/task/T1-x', sha, 'refs/heads/task/T1-x') + line('refs/heads/task/T2-y', bad, 'refs/heads/task/T2-y');
+      expect((await prePush(repo, stdin)).code).toBe(1);
+    });
+
+    it('exits 2 for a malformed pushed task ref', async () => {
+      const repo = repoWith(PASSING);
+      const sha = git(repo, 'rev-parse', 'HEAD');
+      expect((await prePush(repo, line('refs/heads/main', sha, 'refs/heads/task/-x'))).code).toBe(2);
+    });
   });
 });
 

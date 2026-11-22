@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertTaskId } from './ids';
@@ -114,6 +115,23 @@ export function readVerdict(taskId: string, cwd = process.cwd()): Verdict | null
   let text: string;
   try {
     text = readFileSync(path, 'utf8');
+  } catch {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return isVerdict(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The verdict committed in `rev` (`<rev>:.gate/<taskId>/verdict.json`), or null when missing or malformed. */
+export function readVerdictAt(taskId: string, rev: string, cwd = process.cwd()): Verdict | null {
+  assertTaskId(taskId);
+  let text: string;
+  try {
+    text = execFileSync('git', ['show', `${rev}:.gate/${taskId}/verdict.json`], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch {
     return null;
   }

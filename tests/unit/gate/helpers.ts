@@ -64,11 +64,11 @@ export function gateYaml(taskChecks: object[], designChecks: object[] = []): str
 }
 
 /** Collects what the CLI prints. */
-export function captureIo(cwd: string) {
+export function captureIo(cwd: string, stdin = '') {
   const out: string[] = [];
   const err: string[] = [];
   return {
-    io: { cwd, stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) },
+    io: { cwd, stdin: () => stdin, stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) },
     out: () => out.join(''),
     err: () => err.join(''),
   };

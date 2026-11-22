@@ -45,3 +45,28 @@ export function dirtyOutsideGate(cwd: string): string[] {
   }
   return paths.filter((p) => p && !isGatePath(p));
 }
+
+/** Base refs tried, in order, when none is given. */
+export const DEFAULT_BASE_REFS = ['origin/main', 'main'];
+
+export class BaseRefError extends Error {}
+
+/**
+ * The merge base of `rev` with the base ref: the given one (which must resolve), else the
+ * first of origin/main and main that resolves. Null when no default resolves.
+ */
+export function mergeBase(cwd: string, rev = 'HEAD', baseRef?: string): string | null {
+  const refs = baseRef ? [baseRef] : DEFAULT_BASE_REFS;
+  for (const ref of refs) {
+    if (gitOrNull(cwd, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) === null) continue;
+    const mb = gitOrNull(cwd, ['merge-base', ref, rev]);
+    if (mb) return mb;
+  }
+  if (baseRef) throw new BaseRefError(`base ref ${JSON.stringify(baseRef)} does not resolve to a commit with a merge base`);
+  return null;
+}
+
+/** Files changed between two commits (NUL-safe, renames as delete + add). */
+export function changedBetween(cwd: string, from: string, to: string, paths: string[] = []): string[] {
+  return gitRaw(cwd, ['diff', '-z', '--name-only', '--no-renames', from, to, '--', ...paths]).split('\0').filter(Boolean);
+}

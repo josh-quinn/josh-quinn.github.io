@@ -27,7 +27,9 @@ describe('agent hook configs call the shared guard on every tool', () => {
     expect(entry.hooks[0].command).toBe('node ../tools/gate/guard.ts --agent agy');
   });
 
-  it('lefthook pre-push runs gate pre-push', () => {
-    expect(readFileSync('lefthook.yml', 'utf8')).toMatch(/pre-push:[\s\S]*run: npx tsx tools\/gate\/cli\.ts pre-push/);
+  it('lefthook pre-push runs gate pre-push with the pushed refs on stdin', () => {
+    const text = readFileSync('lefthook.yml', 'utf8');
+    expect(text).toMatch(/pre-push:[\s\S]*run: npx tsx tools\/gate\/cli\.ts pre-push/);
+    expect(text).toMatch(/use_stdin: true/);
   });
 });
