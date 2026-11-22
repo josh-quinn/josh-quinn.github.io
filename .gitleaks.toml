@@ -1,0 +1,66 @@
+# gitleaks config: default rules plus PII rules (email, phone, date of birth).
+# Run: gitleaks git --config .gitleaks.toml   (history)
+#      gitleaks dir --config .gitleaks.toml   (working tree)
+title = "personal-site gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "pii-email"
+description = "Email address"
+regex = '''[\w.+-]+@[\w-]+\.[\w.]+'''
+keywords = ["@"]
+
+[[rules.allowlists]]
+description = "Non-personal addresses: git SSH remote user, GitHub noreply, tool attribution noreply, and npm package@version refs (three-part version, e.g. a pinned package in an ADR). All entries are anchored to the whole match."
+regexTarget = "match"
+regexes = [
+  '''^git@github\.com$''',
+  '''^[\w.+-]+@users\.noreply\.github\.com$''',
+  '''^noreply@anthropic\.com$''',
+  # package@semver, three numeric parts, optional suffix.
+  '''^[\w.+-]+@v?\d+\.\d+\.\d+[\w.+-]*$''',
+]
+
+[[rules]]
+id = "pii-phone"
+description = "Phone number"
+regex = '''\+?\d[\d\s().-]{8,}\d'''
+keywords = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+[[rules.allowlists]]
+description = "Date-shaped matches (YYYY-MM-DD, YYYY-MM, year ranges) and dotted version strings"
+regexTarget = "match"
+regexes = [
+  # Whole match must be a date, optionally with at most 3 stray digits (plus separators)
+  # swallowed on one side, so a phone number next to a date (7+ digits) is still reported.
+  '''^\d{4}-\d{2}(-\d{2})?[\s().-]*\d{0,3}$''',
+  '''^\d{0,3}[\s().-]*\d{4}-\d{2}(-\d{2})?$''',
+  '''^\d{4}\s*-\s*\d{4}[\s().-]*\d{0,3}$''',
+  '''^\d{0,3}[\s().-]*\d{4}\s*-\s*\d{4}$''',
+  '''^v?\d+(\.\d+){2,}$''',
+]
+
+[[rules.allowlists]]
+description = "Vendored spec-kit scaffolding (file hashes in manifests, timestamp examples, integer limits in scripts) and one sha256 fragment in ADR 0002. Path-scoped to generated spec-kit files; the constitution and specs are still scanned."
+condition = "OR"
+paths = [
+  '''^\.specify/(integrations|scripts|templates)/''',
+  '''^\.(claude|github)/skills/speckit-''',
+]
+regexTarget = "match"
+regexes = [
+  # Exact digit run from the pinned release-zip sha256 in docs/decisions/0002-spec-kit-tdd.md.
+  '''^0165830720$''',
+]
+
+[[rules]]
+id = "pii-dob"
+description = "Date of birth style date (e.g. 4 March 1990)"
+regex = '''(?i)\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+19\d{2}\b'''
+keywords = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+
+[allowlist]
+description = "The privacy pattern file contains regexes only, no values"
+paths = ['''^tests/privacy/patterns\.ts$''']
