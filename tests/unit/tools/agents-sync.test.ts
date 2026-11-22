@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'yaml';
@@ -84,5 +84,49 @@ describe('syncAgents', () => {
   it('rejects a source with an unknown tool name', () => {
     writeFileSync(join(src, 'bad.md'), SOURCE.replace('Bash', 'Teleport').replace('name: x', 'name: bad'));
     expect(() => syncAgents(src, outDirs)).toThrow(/Teleport/);
+  });
+
+  it('prunes generated files whose source is gone, but keeps hand-written ones', () => {
+    syncAgents(src, outDirs);
+    writeFileSync(join(src, 'old.md'), SOURCE.replace('name: x', 'name: old'));
+    syncAgents(src, outDirs);
+    expect(existsSync(join(outDirs.claude, 'old.md'))).toBe(true);
+    const mine = join(outDirs.claude, 'mine.md');
+    const mineCopilot = join(outDirs.copilot, 'mine.agent.md');
+    writeFileSync(mine, '---\nname: mine\n---\nhand written\n');
+    writeFileSync(mineCopilot, '---\nname: mine\n---\nhand written\n');
+    rmSync(join(src, 'old.md'));
+    syncAgents(src, outDirs);
+    expect(existsSync(join(outDirs.claude, 'old.md'))).toBe(false);
+    expect(existsSync(join(outDirs.copilot, 'old.agent.md'))).toBe(false);
+    expect(readFileSync(mine, 'utf8')).toContain('hand written');
+    expect(existsSync(mineCopilot)).toBe(true);
+    expect(existsSync(join(outDirs.claude, 'x.md'))).toBe(true);
+  });
+
+  it('accepts CRLF sources and renders the same output as LF', () => {
+    syncAgents(src, outDirs);
+    const lf = readFileSync(join(outDirs.claude, 'x.md'), 'utf8');
+    writeFileSync(join(src, 'x.md'), SOURCE.replace(/\n/g, '\r\n'));
+    syncAgents(src, outDirs);
+    expect(readFileSync(join(outDirs.claude, 'x.md'), 'utf8')).toBe(lf);
+  });
+
+  describe('errors name the source file', () => {
+    const cases: [string, string, RegExp][] = [
+      ['missing frontmatter', 'just text\n', /bad\.md: missing frontmatter/],
+      ['invalid YAML', '---\nname: [unclosed\n---\nbody\n', /bad\.md: invalid frontmatter/],
+      ['non-mapping frontmatter', '---\n- a\n- b\n---\nbody\n', /bad\.md: invalid frontmatter/],
+      ['non-string name', '---\nname: 5\ndescription: d\ntools: [Read]\n---\nb\n', /bad\.md: frontmatter needs string name/],
+      ['missing description', '---\nname: bad\ntools: [Read]\n---\nb\n', /bad\.md: frontmatter needs string name/],
+      ['non-list tools', '---\nname: bad\ndescription: d\ntools: Read\n---\nb\n', /bad\.md: frontmatter tools must be a list/],
+      ['non-string tool entry', '---\nname: bad\ndescription: d\ntools: [1]\n---\nb\n', /bad\.md: frontmatter tools must be a list/],
+    ];
+    for (const [label, text, re] of cases) {
+      it(label, () => {
+        writeFileSync(join(src, 'bad.md'), text);
+        expect(() => syncAgents(src, outDirs)).toThrow(re);
+      });
+    }
   });
 });
