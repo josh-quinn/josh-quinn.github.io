@@ -16,11 +16,26 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 }
 
+/** Keys never copied from a config file: they could reach an object's prototype. */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/** A deep copy built from fresh objects, without unsafe keys. */
+function clean(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(clean);
+  if (!isPlainObject(v)) return v;
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v)) if (!UNSAFE_KEYS.has(k)) out[k] = clean(x);
+  return out;
+}
+
 /** Deep-merge `over` onto `base`: plain objects merge key by key; arrays and scalars in `over` replace. Inputs are not mutated. */
 function deepMerge(base: unknown, over: unknown): unknown {
-  if (!isPlainObject(base) || !isPlainObject(over)) return structuredClone(over);
-  const out: Record<string, unknown> = structuredClone(base);
-  for (const [k, v] of Object.entries(over)) out[k] = k in out ? deepMerge(out[k], v) : structuredClone(v);
+  if (!isPlainObject(base) || !isPlainObject(over)) return clean(over);
+  const out = clean(base) as Record<string, unknown>;
+  for (const [k, v] of Object.entries(over)) {
+    if (UNSAFE_KEYS.has(k)) continue;
+    out[k] = Object.hasOwn(out, k) ? deepMerge(out[k], v) : clean(v);
+  }
   return out;
 }
 

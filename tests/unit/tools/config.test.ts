@@ -57,6 +57,22 @@ describe('config', () => {
     expect(defaults).toEqual({ list: [1, 2, 3], nested: { tags: ['a', 'b'] } });
   });
 
+  it('skips __proto__, constructor and prototype keys from the file (no prototype pollution)', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    loadToolConfig('gate', { ai: { backend: 'claude' } });
+    writeFileSync(
+      join(tmp, 'gate', 'config.yaml'),
+      '__proto__:\n  polluted: yes\nconstructor:\n  prototype:\n    polluted2: yes\nai:\n  __proto__:\n    polluted3: yes\n  backend: copilot\n',
+    );
+    const cfg = loadToolConfig('gate', { ai: { backend: 'claude' } }) as Record<string, unknown>;
+    expect(cfg).toEqual({ ai: { backend: 'copilot' } });
+    expect(Object.getPrototypeOf(cfg)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(cfg.ai)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted3).toBeUndefined();
+    expect(Object.keys(cfg)).toEqual(['ai']);
+  });
+
   it('lets a scalar in the file replace a nested default object', () => {
     process.env.TOOLS_CONFIG = tmp;
     loadToolConfig('gate', { ai: { backend: 'claude' } });
