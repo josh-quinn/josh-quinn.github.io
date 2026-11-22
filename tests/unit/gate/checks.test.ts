@@ -37,6 +37,17 @@ describe('runChecks: deterministic', () => {
     expect(log).toContain('to-stderr');
   });
 
+  it('puts the exit code and the last output line in detail, with the home dir redacted', async () => {
+    const res = await one(det('why', `echo first; echo "no tests in $HOME/x" >&2; echo; exit 4`));
+    expect(res.status).toBe('fail');
+    expect(res.detail).toBe('exit 4: no tests in ~/x');
+  });
+
+  it('a non-zero AI exit names the backend message in detail', async () => {
+    const res = await one(ai('a', 'echo "Not logged in. Please run /login" >&2; exit 1'));
+    expect(res.detail).toMatch(/exited 1.*Not logged in/);
+  });
+
   it('exports GATE_TASK to every check', async () => {
     expect((await one(det('env', 'test "$GATE_TASK" = T1'))).status).toBe('pass');
   });

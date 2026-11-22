@@ -127,6 +127,16 @@ function runShell(command: string, cwd: string, env: NodeJS.ProcessEnv, timeoutM
   });
 }
 
+function redactHome(s: string): string {
+  return s.split(homedir()).join('~');
+}
+
+/** `prefix: <last non-empty output line>` (home dir redacted, at most 200 chars), or just `prefix`. */
+function withLastLine(prefix: string, log: string): string {
+  const last = log.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop();
+  return last ? `${prefix}: ${redactHome(last).slice(0, 200)}` : prefix;
+}
+
 function matchesAny(globs: string[], changed: string[]): boolean {
   return changed.some((f) => globs.some((g) => matchesGlob(f, g)));
 }
@@ -171,18 +181,18 @@ export async function runChecks(specs: CheckSpec[], changed: string[], opts: Run
     else if (r.code === null) [status, detail] = ['error', `killed by signal ${r.signal}`];
     else if (MISSING_BINARY.has(r.code)) [status, detail] = ['error', `command not found or not executable (exit ${r.code})`];
     else if (spec.kind === 'ai') {
-      if (r.code !== 0) [status, detail] = ['error', `AI backend exited ${r.code} (not installed, not logged in, or failed)`];
+      if (r.code !== 0) [status, detail] = ['error', withLastLine(`AI backend exited ${r.code} (not installed, not logged in, or failed)`, r.log)];
       else if (!(parsed = parseAiOutput(r.stdout)))
         [status, detail] = ['error', 'AI output is not exactly one JSON object {score, passes, issues, tokens?}'];
       else [status, detail] = parsed.passes ? ['pass', undefined] : ['fail', parsed.issues.join('; ') || 'passes=false'];
     } else if (r.code === 0) status = 'pass';
-    else [status, detail] = ['fail', `exit ${r.code}`];
+    else [status, detail] = ['fail', withLastLine(`exit ${r.code}`, r.log)];
 
     const evidence = `${evidenceRel}/${safeName(spec.name)}.log`;
     mkdirSync(join(cwd, evidenceRel), { recursive: true });
     const header = `$ ${spec.run}\n# status: ${status}${detail ? ` (${detail})` : ''}; exit: ${r.code ?? r.signal ?? 'none'}; ${durationMs} ms\n\n`;
     // Keep home paths out of the log, in case it is ever shared.
-    writeFileSync(join(cwd, evidence), (header + r.log).split(homedir()).join('~'));
+    writeFileSync(join(cwd, evidence), redactHome(header + r.log));
 
     const result: CheckResult = { ...base, ...ai, status, evidence, durationMs };
     if (parsed) {
