@@ -1,0 +1,11 @@
+Third-party credits
+
+Design values (CSS custom properties, spacing, type scale and similar) in this
+site may be derived from pi-website, https://github.com/earendil-works/pi-website,
+which is licensed under the MIT licence. Those values may be reused under MIT.
+
+Copyright (c) the pi-website authors
+
+TODO: replace the line above with the exact copyright line from the pi-website
+LICENSE file, and reproduce the full MIT licence text here, at the point where
+values are actually copied.

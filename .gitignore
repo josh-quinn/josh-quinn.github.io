@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.cache/
+.astro/
+*.pdf
+test-results/
+playwright-report/
+.private/
+.DS_Store
