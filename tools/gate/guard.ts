@@ -146,6 +146,20 @@ const DENY_TESTS =
   'gate: tests/acceptance/ is written only by the test-author step (started with GATE_TEST_AUTHOR=<task-id>); the implementer must not edit acceptance tests. Stop and report the problem instead';
 const DENY_HOOKS = 'gate: git hooks must not be bypassed (--no-verify, -n, LEFTHOOK=0, core.hooksPath); fix the failure instead';
 const DENY_TRAILER = 'gate: only the test-author step for that task may add a Gate-Test-Author trailer';
+const DENY_EXEMPT =
+  'gate: GATE_TEST_AUTHOR is set only by whoever starts the test-author step, never from an agent shell (it would hand a nested agent the exemption)';
+
+/** A deny reason when an env assignment (or exported name) touches a guarded variable. */
+function guardedEnv(word: string): string | null {
+  const eq = word.indexOf('=');
+  const name = eq < 0 ? word : word.slice(0, eq);
+  const value = eq < 0 ? '' : word.slice(eq + 1).toLowerCase();
+  if (name === 'GATE_TEST_AUTHOR') return DENY_EXEMPT;
+  if (eq >= 0 && /^LEFTHOOK(?:_EXCLUDE|_SKIP)?$/.test(name)) return DENY_HOOKS;
+  // Config injected through the environment (GIT_CONFIG_COUNT/KEY_n/VALUE_n, GIT_CONFIG_PARAMETERS).
+  if (/^GIT_CONFIG_(?:KEY_\d+|PARAMETERS)$/.test(name) && value.includes('hookspath')) return DENY_HOOKS;
+  return null;
+}
 
 function areaReason(area: string): string {
   return area === '.gate/' ? DENY_GATE : DENY_TESTS;
@@ -279,7 +293,8 @@ function bypassesHooks(sub: string, rest: string[]): boolean {
   for (let i = 0; i < rest.length; i++) {
     const w = rest[i];
     if (w === '--') break;
-    if (w === '--no-verify') return true;
+    // git accepts any unambiguous prefix of a long option (`--no-veri`); treat `--no-ve` and longer as the bypass.
+    if (w.length >= '--no-ve'.length && '--no-verify'.startsWith(w)) return true;
     if (w.startsWith('--')) {
       if (LONG_WITH_VALUE.has(w)) i++;
       continue;
@@ -309,9 +324,12 @@ function checkShell(command: string, base: string, ctx: Ctx, depth = 0): string 
     }
     const cmd = words.length ? basename(words[0]) : '';
     const args = words.slice(1);
-    // Hook kill switch, as an env prefix (`LEFTHOOK=0 git push`, `env LEFTHOOK=0 ...`) or an export.
-    const isKillSwitch = (w: string) => /^LEFTHOOK(?:_EXCLUDE|_SKIP)?=/.test(w);
-    if (assigns.some(isKillSwitch) || ((cmd === 'export' || cmd === 'declare' || cmd === 'typeset') && args.some(isKillSwitch))) return DENY_HOOKS;
+    // Guarded variables, as an env prefix (`X=1 cmd`, `env X=1 cmd`), a bare assignment or an export.
+    const exported = cmd === 'export' || cmd === 'declare' || cmd === 'typeset' || cmd === 'readonly' ? args : [];
+    for (const w of [...assigns, ...exported]) {
+      const r = guardedEnv(w);
+      if (r) return r;
+    }
 
     for (const r of seg.redirs) {
       const area = ctx.protectedArea(r, dir);
@@ -342,6 +360,10 @@ function checkShell(command: string, base: string, ctx: Ctx, depth = 0): string 
       for (; i < args.length && args[i].startsWith('-'); i++) {
         if (args[i] === '-C' && args[i + 1] !== undefined) dir = resolve(dir, args[++i]);
         else if (args[i] === '-c' && args[i + 1] !== undefined && args[++i].toLowerCase().startsWith('core.hookspath')) return DENY_HOOKS;
+        else if (args[i].startsWith('--config-env')) {
+          const value = args[i].includes('=') ? args[i].slice(args[i].indexOf('=') + 1) : (args[++i] ?? '');
+          if (value.toLowerCase().startsWith('core.hookspath')) return DENY_HOOKS;
+        }
       }
       const sub = args[i] ?? '';
       const rest = args.slice(i + 1);

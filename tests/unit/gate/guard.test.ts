@@ -113,6 +113,23 @@ describe('guard: shell commands', () => {
     "node <<'JS'\nrequire('fs').writeFileSync('.gate/T1/verdict.json', '{}')\nJS",
     'bash <<EOF\nrm -rf .gate/T1\nEOF',
     'cat <<< "x" > .gate/x',
+    // Review finding 1: an agent must not grant a nested agent the test-author exemption.
+    'GATE_TEST_AUTHOR=T1 claude -p "edit the tests"',
+    'env GATE_TEST_AUTHOR=T1 copilot -p x',
+    'env -i GATE_TEST_AUTHOR=T1 agy -p x',
+    'export GATE_TEST_AUTHOR=T1; claude -p x',
+    'GATE_TEST_AUTHOR=T1; export GATE_TEST_AUTHOR',
+    'declare -x GATE_TEST_AUTHOR=T1',
+    // Review finding 2: unambiguous long-option prefixes and config routes to the hooks path.
+    'git commit --no-veri -m x',
+    'git push --no-verif',
+    'git commit --no-ve -m x',
+    'git --config-env=core.hooksPath=X push',
+    'git --config-env core.hooksPath=X push',
+    'git config --local core.HooksPath /dev/null',
+    'git config set core.hooksPath x',
+    'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git push',
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='/dev/null'\" git push",
     'cat <<-EOF > .gate/x\n\tx\n\tEOF\necho done',
   ])('denies %j', (command) => {
     for (const agent of ['claude', 'copilot', 'agy'] as Agent[]) expect(denied(agent, sh(command, agent)), agent).toBe(true);
@@ -138,6 +155,9 @@ describe('guard: shell commands', () => {
     'grep -rn core.hooksPath docs/',
     'echo LEFTHOOK=0',
     'grep -c x <<< "LEFTHOOK=0"',
+    'echo GATE_TEST_AUTHOR=T1',
+    'git commit --no-edit --amend',
+    'git config --get user.name',
     "cat > docs/a.md <<'A'\nrm -rf .gate/T1\nA\ncat > docs/b.md <<'B'\ngit push --no-verify\nB",
   ])('allows %j', (command) => {
     for (const agent of ['claude', 'copilot', 'agy'] as Agent[]) expect(denied(agent, sh(command, agent)), agent).toBe(false);
