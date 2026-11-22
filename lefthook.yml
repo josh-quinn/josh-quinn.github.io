@@ -1,0 +1,10 @@
+# Git hooks (ADR 0001: lefthook, exact-pinned devDependency).
+# `npm install` runs `lefthook install`, which writes .git/hooks/pre-push.
+pre-push:
+  jobs:
+    - name: gate
+      # Git's pushed refs arrive on stdin. Every pushed task/<id>-<slug> branch must carry a
+      # passing verdict for the pushed commit's tree; otherwise the push is blocked (and, when
+      # the pushed commit is HEAD, `gate task <id>` runs). Other branches pass with a notice.
+      use_stdin: true
+      run: npx tsx tools/gate/cli.ts pre-push

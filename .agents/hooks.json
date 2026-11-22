@@ -1,0 +1,16 @@
+{
+  "gate-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ../tools/gate/guard.ts --agent agy",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

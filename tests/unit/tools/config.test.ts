@@ -37,6 +37,49 @@ describe('config', () => {
     expect(readFileSync(file).equals(before)).toBe(true);
   });
 
+  it('deep-merges nested objects: a partial nested override keeps sibling defaults', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    const defaults = { timeoutMs: 600000, ai: { backend: 'claude', model: 'sonnet', auditor: { backend: 'claude', model: 'haiku' } } };
+    loadToolConfig('gate', defaults);
+    writeFileSync(join(tmp, 'gate', 'config.yaml'), 'ai:\n  auditor:\n    model: opus\n');
+    expect(loadToolConfig('gate', defaults)).toEqual({
+      timeoutMs: 600000,
+      ai: { backend: 'claude', model: 'sonnet', auditor: { backend: 'claude', model: 'opus' } },
+    });
+  });
+
+  it('replaces arrays instead of merging them, and does not mutate the defaults', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    const defaults = { list: [1, 2, 3], nested: { tags: ['a', 'b'] } };
+    loadToolConfig('gate', defaults);
+    writeFileSync(join(tmp, 'gate', 'config.yaml'), 'list: [9]\nnested:\n  tags: []\n');
+    expect(loadToolConfig('gate', defaults)).toEqual({ list: [9], nested: { tags: [] } });
+    expect(defaults).toEqual({ list: [1, 2, 3], nested: { tags: ['a', 'b'] } });
+  });
+
+  it('skips __proto__, constructor and prototype keys from the file (no prototype pollution)', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    loadToolConfig('gate', { ai: { backend: 'claude' } });
+    writeFileSync(
+      join(tmp, 'gate', 'config.yaml'),
+      '__proto__:\n  polluted: yes\nconstructor:\n  prototype:\n    polluted2: yes\nai:\n  __proto__:\n    polluted3: yes\n  backend: copilot\n',
+    );
+    const cfg = loadToolConfig('gate', { ai: { backend: 'claude' } }) as Record<string, unknown>;
+    expect(cfg).toEqual({ ai: { backend: 'copilot' } });
+    expect(Object.getPrototypeOf(cfg)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(cfg.ai)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted3).toBeUndefined();
+    expect(Object.keys(cfg)).toEqual(['ai']);
+  });
+
+  it('lets a scalar in the file replace a nested default object', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    loadToolConfig('gate', { ai: { backend: 'claude' } });
+    writeFileSync(join(tmp, 'gate', 'config.yaml'), 'ai: off\n');
+    expect(loadToolConfig('gate', { ai: { backend: 'claude' } })).toEqual({ ai: 'off' });
+  });
+
   it('uses the legacy JQ_TOOLS_CONFIG when TOOLS_CONFIG is unset', () => {
     process.env.JQ_TOOLS_CONFIG = tmp;
     expect(toolsConfigRoot()).toBe(tmp);

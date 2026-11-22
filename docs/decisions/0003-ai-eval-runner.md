@@ -1,6 +1,6 @@
 # 0003. AI eval runner: promptfoo or a thin runner in `gate`
 
-Status: **proposed, pending owner decision.** The privacy audit verdict is "Needs your decision", so Task 6 must not wire up an eval runner until the owner picks Option A or B below.
+Status: **accepted (2026-11-22): Option A, promptfoo**, with the conditions under "Owner decision" below. Task 6 wires it up; Task 5 does not.
 
 ## Context
 
@@ -32,7 +32,26 @@ With defaults, one eval connected to `api.promptfoo.dev` (update check), `a.prom
 
 ## Decision
 
-Recommendation: Option A with the lock-down, because it gives rubric assertions and reports for free and the leak is contained. **It is the owner's call**: accepting A means accepting the dead-proxy workaround and that, without it, one content-free event per run reaches `r.promptfoo.app`. Option B has no such surface and costs a small amount of code; it is the pick if the owner will not accept the workaround or the 577-package dependency tree (which Task 6 would isolate in its own package folder). Until the owner decides, no task adds promptfoo or the thin runner.
+Recommendation: Option A with the lock-down, because it gives rubric assertions and reports for free and the leak is contained. **It is the owner's call**: accepting A means accepting the dead-proxy workaround and that, without it, one content-free event per run reaches `r.promptfoo.app`. Option B has no such surface and costs a small amount of code; it is the pick if the owner will not accept the workaround or the 577-package dependency tree (which Task 6 would isolate in its own package folder).
+
+### Owner decision (2026-11-22)
+
+The owner chose **Option A (promptfoo)**, to learn from it, in this order of preference:
+
+1. **Config and env only.** Block telemetry, update checks, sharing and remote generation with promptfoo's own settings (the `PROMPTFOO_DISABLE_*` variables and a local `PROMPTFOO_CONFIG_DIR`, above).
+2. **Dead-proxy wrapper only if needed.** Use the wrapper (proxy variables pointed at a closed local port, unset again before the agent CLI runs) only if a residual event still leaves the machine after step 1. The 0.126.0 run above saw one such event; Task 6 re-tests this on the version it pins before deciding.
+
+Promptfoo is **not cleared for the work laptop**. There, Option B (an own thin runner inside `gate`) is the likely route, built after learning from how promptfoo is used here.
+
+## Addendum (Task 5): does an adopted tool already give a per-task verdict?
+
+Checked before building `gate` (verdict, tree hash, checks runner, verify):
+
+- **spec-kit and spec-kit-tdd 2.0.1** (0002): `/speckit.tdd.verify` writes `specs/<feature>/tdd/verification.md` with a verdict (`PASS`, `PASS_WITH_GAPS`, `FAIL`, `BLOCKED`) per feature. It is an agent-written audit of TDD discipline. It is not bound to a tree, records no hash, and runs no checks. Nothing in `.specify/` computes or checks a tree hash (searched for `verdict`, `tree`, `ls-tree`, `write-tree`).
+- **promptfoo** (this ADR): writes eval results (`--output` JSON) per run. They have no task id or tree hash, and it runs only model evals.
+- **lefthook 2.2.2** (0001): runs hook jobs and reports pass or fail at the time. It keeps no verdict, so CI cannot check that the hooks ran on the tree being merged.
+
+None of them gives a stored, per-task verdict tied to the exact tree, so `gate` builds only that layer. It runs the adopted tools as checks: Vitest, Playwright, axe through `@axe-core/playwright`, gitleaks, lychee, and later promptfoo. It records their exit status and writes `.gate/<id>/verdict.json` with a hash of the tree minus `.gate/`. Then `gate verify` (CI) compares that hash with the tree being merged. The TDD verdict from spec-kit-tdd stays a separate, advisory report.
 
 ## Evidence
 

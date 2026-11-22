@@ -1,0 +1,47 @@
+# gate checks. `npm run gate -- task <id>` runs the `task` checks in order from the repo root,
+# with GATE_TASK=<id> exported, and writes .gate/<id>/verdict.json + report.md.
+# Each check: name, kind (deterministic | ai), run (sh -c), optional when (globs over files
+# changed since the merge base with main), timeoutMs, backend, model.
+# Exit 0 = pass, non-zero = fail; a missing tool (exit 126/127) or a timeout = error.
+# Machine defaults (timeout, AI backend/model) live in ~/.config/jq-tools/gate/config.yaml.
+version: 1
+modes:
+  task:
+    checks:
+      - name: build
+        kind: deterministic
+        run: npm run lint && npm run build
+
+      - name: unit
+        kind: deterministic
+        run: npm run test:unit
+
+      # tests/acceptance/<id>/ unchanged since the Gate-Test-Author commit.
+      - name: integrity
+        kind: deterministic
+        run: npx tsx tools/gate/cli.ts integrity "$GATE_TASK"
+
+      # A task without acceptance tests must not pass.
+      - name: acceptance
+        kind: deterministic
+        run: >-
+          if ! find "tests/acceptance/$GATE_TASK" -name '*.spec.ts' 2>/dev/null | grep -q .; then
+          echo "gate: no acceptance tests in tests/acceptance/$GATE_TASK/; a task without acceptance tests cannot pass" >&2; exit 1; fi;
+          npx playwright test "tests/acceptance/$GATE_TASK/"
+
+      - name: axe
+        kind: deterministic
+        run: npm run test:a11y
+
+      - name: privacy
+        kind: deterministic
+        run: npx playwright test tests/privacy/ && gitleaks git --config .gitleaks.toml --no-banner --redact .
+
+      # Internal links in the build, offline (ADR 0005). External links: CI only.
+      - name: links
+        kind: deterministic
+        run: lychee --offline --no-progress --root-dir "$PWD/dist" dist
+
+  # Filled in by Task 6 (AI design checks). With no checks, `gate design` fails.
+  design:
+    checks: []
