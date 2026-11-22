@@ -29,13 +29,17 @@ Each task runs on a branch `task/<id>-<slug>` and is done when its gate passes.
 ```sh
 npm run gate -- task T1        # run gate.yaml checks on a clean tree, write .gate/T1/
 npm run gate -- verify T1      # passing verdict for exactly this tree?
-npm run gate -- integrity T1   # tests/acceptance/T1/ unchanged since the test-author commit?
+npm run gate -- integrity T1   # tests first, and unchanged since the test-author commit?
 ```
 
-Commit `.gate/<id>/verdict.json` and `report.md` (evidence logs stay local). The
-`pre-push` hook (lefthook) and the CI `integrity` and `verdict` jobs enforce this on
-`task/*` branches, and the CI `verdict` job checks the merge tree, so a branch behind
-`main` must be rebased and re-gated. Agent hooks (`tools/gate/guard.ts`, see
+The first commit on a task branch is the test author's, the only one with the trailer
+`Gate-Test-Author: <id>`, and it touches only `tests/acceptance/<id>/`. Commit
+`.gate/<id>/verdict.json` and `report.md` (evidence logs stay local). The `pre-push` hook
+(lefthook) checks every pushed `task/*` branch for a passing verdict for the pushed
+commit. The CI `integrity` and `verdict` jobs enforce the same on pull requests. The
+`verdict` job checks the merge tree, so a branch behind `main` must be rebased and
+re-gated. A pull request from any other branch fails if it changes `tests/acceptance/`
+or `.gate/`. Agent hooks (`tools/gate/guard.ts`, see
 `docs/decisions/0004-agent-capabilities.md`) block agent writes to `.gate/` and
 `tests/acceptance/`. Start the test-author agent with `GATE_TEST_AUTHOR=<id>` so it can
 write `tests/acceptance/<id>/`. The gate needs `gitleaks` and `lychee` on the PATH;

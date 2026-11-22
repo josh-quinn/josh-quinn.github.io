@@ -60,7 +60,11 @@ One guard, `tools/gate/guard.ts`, runs under plain `node` without tsx. It is cal
 
 - writes to `.gate/**`;
 - writes to `tests/acceptance/**`, except under the test-author override above;
-- shell commands that skip git hooks: `--no-verify`, or `-n` with `git commit` or `git push`, a `LEFTHOOK=0` env prefix or export, or setting `core.hooksPath`;
+- shell commands that skip git hooks:
+  - `--no-verify` and any abbreviation from `--no-ve` on (git accepts unambiguous prefixes), or `-n`, with `git commit` or `git push`;
+  - a `LEFTHOOK=0` env prefix or export;
+  - setting `core.hooksPath` through `git -c`, `git --config-env`, `git config`, or the `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_PARAMETERS` env vars;
+- shell commands that set `GATE_TEST_AUTHOR` (as an env prefix, an `env` argument, a bare assignment or an `export`/`declare`), so an agent cannot start a nested agent with the test-author exemption;
 - shell commands that add a `Gate-Test-Author` trailer outside the test-author step;
 - shell commands that visibly write to a protected path: redirects, `rm`/`mv`/`cp`/`tee`/`touch`/..., `sed -i`, `git checkout`/`restore`/`rm`/`clean`, and inline interpreter code (`node -e`, or a heredoc fed to `node`/`python`). It follows `sh -c`, shell heredocs and `cd`.
 
@@ -70,12 +74,36 @@ Reads are allowed, and so is text that only mentions these things, such as a her
 - `copilot -p "<prompt>" -s --trust-folder --disable-client-telemetry --allow-tool=write --allow-tool='shell(git:*)'`
 - `agy -p "<prompt>" --mode accept-edits --settings '{"permissions":{"allow":["command(git status --short lefthook.yml)"]}}'`
 
+### Nested agents and what stops them (Task 5 review)
+
+An implementer can run another agent CLI from its shell, for example `claude -p "..."` or `copilot -p "..."`. Such a nested agent would get the test-author exemption if the implementer set `GATE_TEST_AUTHOR` for it, or would run with no repo hooks at all (Copilot without `--trust-folder`). It could then edit `tests/acceptance/<id>/` and commit with the trailer. Three things now stop this from passing CI:
+
+1. The guard denies setting `GATE_TEST_AUTHOR` from an agent shell (above).
+2. `gate integrity` measures the branch from its merge base with the PR base (CI passes `--base origin/<base>`) and requires all of the following:
+   - **exactly one** commit with `Gate-Test-Author: <id>`;
+   - that commit is the **first** commit on the branch;
+   - it changes **only** `tests/acceptance/<id>/`;
+   - nothing under `tests/acceptance/<id>/` changes after it;
+   - the branch changes no other task's `tests/acceptance/` folder.
+   A later, self-made trailer commit is therefore a failure, not a new baseline, and test-first order is checked from git history.
+3. A PR from a branch that is not `task/<id>-<slug>` fails both CI jobs if it changes anything under `tests/acceptance/` or `.gate/` against its base.
+
+What is left: the branch history itself. Someone who rewrites the branch so that a single forged trailer commit comes first (reset, re-commit, force-push) passes `integrity`. The reviewer checks that the first commit is the test-author's. A nested agent without hooks can also write files the guard would block; CI integrity and verify are the guarantee there, as for any shell gap.
+
 ### Residual risks
 
-- **Shell analysis is best effort.** Globs (`rm .ga*`), variables, scripts that are written and then run, and commit messages read from a file (`-F`) can get past it. For acceptance tests the guarantee is CI `gate integrity`. For verdicts it is CI `gate verify` plus the CI jobs that re-run build, unit and e2e. A forged verdict would mostly matter for checks that CI cannot re-run: the AI checks (Task 6) and `links`.
-- **The trailer is trusted.** `gate integrity` diffs against the latest commit with `Gate-Test-Author: <id>`. The guard blocks agents from writing that trailer, but anyone can write it by hand, so the reviewer checks who made the trailer commit.
+- **Shell analysis is best effort.** Known gaps:
+  - globs and globbed destinations (`rm .ga*`, `cp x tests/accep*/T1/`), variables and command substitution in paths;
+  - `find ... -delete` / `-exec`, the `ed`/`ex`/`vi` editors, `git update-index --assume-unchanged` / `--skip-worktree`;
+  - symlinks (a link outside the protected folders that points into them);
+  - scripts written to a file and then run, and commit messages read from a file (`-F`);
+  - PowerShell commands (only the POSIX shell syntax is parsed);
+  - a `GIT_CONFIG_GLOBAL` file or an edited `.git/config` / `.git/hooks/` that disables the hooks.
+
+  For acceptance tests the guarantee is CI `gate integrity`. For verdicts it is CI `gate verify` plus the CI jobs that re-run build, unit and e2e. A forged verdict would mostly matter for checks that CI cannot re-run: the AI checks (Task 6) and `links`.
+- **The test-author commit is trusted once it is first.** See "Nested agents" above. The guard blocks agents from writing the trailer, but anyone can write it by hand.
 - **The override is per process.** `GATE_TEST_AUTHOR` is set by whoever starts the agent. A subagent inside an implementer session inherits the parent's environment, so it cannot receive the exemption. The test-author step must run as its own process.
-- **The guard and hook configs are not protected.** An agent could edit `tools/gate/guard.ts` or the three hook files. That shows in the diff, and the reviewer and CI are the backstop.
+- **Gate inputs are not protected.** An agent could edit `tools/gate/guard.ts`, the three hook files, `gate.yaml` (to weaken or drop a check), `playwright.config.ts` (for example `testMatch` or `testIgnore`) or the shared test helpers in `tests/helpers/`. All of these show in the diff, and the reviewer and CI are the backstop.
 - **Copilot:** hooks fail open on timeout, and in `-p` mode repo hooks load only with `--trust-folder`.
 - **agy:** the `PreToolUse` deny was run on 1.5.9 only. The tool names differ from the docs, which describe newer releases.
 
