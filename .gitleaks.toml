@@ -42,6 +42,19 @@ regexes = [
   '''^v?\d+(\.\d+){2,}$''',
 ]
 
+[[rules.allowlists]]
+description = "Vendored spec-kit scaffolding (file hashes in manifests, timestamp examples, integer limits in scripts) and one sha256 fragment in ADR 0002. Path-scoped to generated spec-kit files; the constitution and specs are still scanned."
+condition = "OR"
+paths = [
+  '''^\.specify/(integrations|scripts|templates)/''',
+  '''^\.(claude|github)/skills/speckit-''',
+]
+regexTarget = "match"
+regexes = [
+  # Exact digit run from the pinned release-zip sha256 in docs/decisions/0002-spec-kit-tdd.md.
+  '''^0165830720$''',
+]
+
 [[rules]]
 id = "pii-dob"
 description = "Date of birth style date (e.g. 4 March 1990)"

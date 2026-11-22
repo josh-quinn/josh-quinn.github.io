@@ -1,6 +1,6 @@
 # 0002. spec-kit-tdd: adopt, pinned, with an independent gate check
 
-Status: accepted with concerns (2026-11-22). Read by Tasks 4 and 5.
+Status: accepted with concerns (2026-11-22). Read by Tasks 4 and 5. Installed in Task 4 (see Task 4 install and Copilot check below).
 
 ## Context
 
@@ -24,7 +24,14 @@ Copilot route (verified in a second throwaway copy): `specify init --here --inte
 
 Adopt, pinned to the v2.0.1 release zip (verify the zip against the audited source when upgrading). Keep one thing outside the extension: the `gate` command independently checks test-first evidence (failing test commit precedes the implementation commit) instead of trusting `cycle-log.md`, because the extension runs the loop in a single agent and does not separate test author from implementer. If the extension is abandoned, the audited prompts can be forked; they are plain markdown.
 
-Concerns: very young, single-maintainer project; spec-kit's own scaffolding (`.claude/skills/speckit-*`, `.specify/`) is a large footprint in a small public repo; the Copilot route is verified only for install and `setup`; running `plan`/`run`/`verify` under Copilot is an open requirement for Task 4. If that fails, Task 4 builds the thin equivalent (test list from acceptance criteria, failing tests committed by a test-author step, implementation, cold-context audit) for Copilot.
+Concerns: very young, single-maintainer project; spec-kit's own scaffolding (`.claude/skills/speckit-*`, `.specify/`) is a large footprint in a small public repo; the Copilot route is verified only for install and `setup`; running `plan`/`run`/`verify` under Copilot was an open requirement for Task 4; the Task 4 check below shows the commands resolve, but a full run through Copilot is still not done. If a full run fails, the fallback is the thin equivalent (test list from acceptance criteria, failing tests committed by a test-author step, implementation, cold-context audit) built on the Task 4 role agents.
+
+## Task 4 install and Copilot check (2026-11-22)
+
+- **run:** `specify init --here --force --non-interactive --integration claude --ignore-agent-tools`, then `specify integration install copilot --force` (a second integration needs `--force`; the default stays `claude`). Spec Kit 1.2.4 writes `.specify/`, `.claude/skills/speckit-*` and `.github/skills/speckit-*`. Its skills are named `speckit-<step>` (hyphen), not `/speckit.<step>`.
+- **run:** the `archive/refs/tags/v2.0.1.zip` source archive is rejected by `specify extension add` ("Unsafe symlink in ZIP archive"). The release asset works: `specify extension add tdd --from https://github.com/d0whc3r/spec-kit-tdd/releases/download/v2.0.1/tdd-2.0.1.zip`. Its sha256 is `bdae2f8d6582767c47c1758ed3204d23d41b83e666e0165830720b97b7212726`, identical to the digest GitHub publishes for that release asset. Re-check the digest when upgrading.
+- The install registered `speckit-tdd-setup`, `-plan`, `-run` and `-verify` under both `.claude/skills/` and `.github/skills/`, and `.specify/extensions.yml` with four hooks.
+- **run (Copilot):** `copilot -p "<list custom agents and speckit-tdd skills by name>" -s --disable-client-telemetry --trust-folder --no-ask-user` listed `speckit-tdd-setup`, `speckit-tdd-plan`, `speckit-tdd-run` and `speckit-tdd-verify`. So plan, run and verify are available from Copilot CLI. Gap that remains: they were only resolved, not executed end to end, under Copilot. Task 8 runs them for real; if that fails the thin fallback above applies.
 
 ## Evidence
 
