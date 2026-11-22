@@ -7,3 +7,6 @@ test-results/
 playwright-report/
 .private/
 .DS_Store
+
+# gate evidence logs (local only; verdict.json and report.md are committed)
+.gate/*/evidence/
