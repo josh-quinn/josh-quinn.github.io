@@ -42,7 +42,7 @@ Disable with the four environment variables above. Keep `PROMPTFOO_CONFIG_DIR` l
 
 ## Your decisions
 
-- [ ] Accept promptfoo with the lock-down above (telemetry env vars, dead-proxy wrapper). The alternative is a small runner in `gate`.
+- [ ] Accept promptfoo with the lock-down above (telemetry env vars, dead-proxy wrapper), or choose the thin runner in `gate`. Pending; see ADR 0003.
 
 ## Coverage
 

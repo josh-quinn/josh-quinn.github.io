@@ -11,18 +11,20 @@ Feature work runs through spec-kit. The wanted flow is: test list from acceptanc
 1. Adopt spec-kit-tdd v2.0.1.
 2. Build a thin equivalent (four prompts plus a gate check).
 
-Facts about the extension (2026-11-22): 10 stars, 21 open issues, MIT, created 2026-08-03, latest release v2.0.1 on 2026-10-24 (v2.0.0 the same day), one maintainer. It requires spec-kit `>=0.12.17`; the installed `specify` is 1.2.4. It is four markdown command files and four templates, with no code that runs. Commands: `setup` (detect and prove the test commands), `plan` (test list from `spec.md`/`plan.md`), `run` (red-green-refactor, evidence in `tdd/cycle-log.md`), `verify` (cold-context audit, test-first evidence from git history, mutation checks where a tool exists).
+Facts about the extension (2026-11-22): 10 stars, 21 open issues, MIT, created 2026-08-03, latest release v2.0.1 on 2026-10-24 (v2.0.0 the same day), one maintainer. Commit activity (GitHub API): 32 commits on the default branch, all between 2026-08-03 and 2026-10-24 (5 in the last 30 days before that date, none since 2026-11-01); the repo was last pushed to on 2026-11-19. The 21 open items are 1 issue and 20 pull requests. It requires spec-kit `>=0.12.17`; the installed `specify` is 1.2.4. It is four markdown command files and four templates, with no code that runs. Commands: `setup` (detect and prove the test commands), `plan` (test list from `spec.md`/`plan.md`), `run` (red-green-refactor, evidence in `tdd/cycle-log.md`), `verify` (cold-context audit, test-first evidence from git history, mutation checks where a tool exists).
 
 Hands-on, in a throwaway copy of this repo: `specify init --here --integration claude`, then `specify extension add tdd --from <release zip>` (asks to confirm an untrusted URL), then the setup command. The installed copy matched the audited source. Install writes `.claude/skills/speckit-tdd-*`, `.specify/extensions/tdd/`, and `.specify/extensions.yml` (four hooks). Setup writes only `.specify/memory/tdd-profile.md` (127 lines): it ran the suite (green, about 3 s), found the Playwright single-test command, and set `single: null` for Vitest because no unit test exists yet. Findings:
 - In Claude Code the commands are skills named `/speckit-tdd-setup`, not `/speckit.tdd.setup`.
 - Headless `claude -p` with only `--permission-mode acceptEdits` cannot run the suite, so the profile was not written. It needed `--allowedTools` for `npm run`, `npx vitest` and `npx playwright`.
 - The `before_implement` hook is non-optional by design; it can be disabled in `.specify/extensions.yml`.
 
+Copilot route (verified in a second throwaway copy): `specify init --here --integration copilot`, then the same `extension add`, registers the four commands as skills under `.github/skills/speckit-tdd-*`. `copilot --trust-folder -p "/speckit-tdd-setup --no-constitution" --allow-tool='shell(npm:*)' --allow-tool='shell(npx:*)' --allow-tool=write --allow-tool=read` discovered the skill, wrote `.specify/memory/tdd-profile.md`, and stopped at verification only because that copy had no `node_modules` (the extension never installs dependencies). The plan, run and verify commands were not run through Copilot.
+
 ## Decision
 
 Adopt, pinned to the v2.0.1 release zip (verify the zip against the audited source when upgrading). Keep one thing outside the extension: the `gate` command independently checks test-first evidence (failing test commit precedes the implementation commit) instead of trusting `cycle-log.md`, because the extension runs the loop in a single agent and does not separate test author from implementer. If the extension is abandoned, the audited prompts can be forked; they are plain markdown.
 
-Concerns: very young, single-maintainer project; spec-kit's own scaffolding (`.claude/skills/speckit-*`, `.specify/`) is a large footprint in a small public repo; Copilot parity is by spec-kit's Copilot integration and was not tested here.
+Concerns: very young, single-maintainer project; spec-kit's own scaffolding (`.claude/skills/speckit-*`, `.specify/`) is a large footprint in a small public repo; the Copilot route is verified only for install and `setup`; running `plan`/`run`/`verify` under Copilot is an open requirement for Task 4. If that fails, Task 4 builds the thin equivalent (test list from acceptance criteria, failing tests committed by a test-author step, implementation, cold-context audit) for Copilot.
 
 ## Evidence
 
