@@ -51,6 +51,8 @@ describe('guard: protected paths', () => {
     ['copilot apply_patch to src', 'copilot', copilot('apply_patch', patch('*** Add File: src/x.ts'))],
     ['agy view_file of a verdict', 'agy', agy('view_file', { AbsolutePath: `${ROOT}/.gate/T1/verdict.json` })],
     ['agy write_file to src', 'agy', agy('write_file', { Content: 'hi', Path: `${ROOT}/src/x` })],
+    ['claude SubagentHandback mentioning .gate/', 'claude', claude('SubagentHandback', { message: 'wrote .gate/T1/verdict.json' })],
+    ['claude SendMessage mentioning tests/acceptance/', 'claude', claude('SendMessage', { to: 'x', message: 'see tests/acceptance/T1/' })],
   ])('allows %s', (_label, agent, payload) => {
     expect(denied(agent, payload)).toBe(false);
   });

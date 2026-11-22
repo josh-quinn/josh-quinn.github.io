@@ -29,6 +29,8 @@ const AGENTS = new Set<string>(['claude', 'copilot', 'agy']);
 const READ_TOOLS = new Set([
   // Claude Code
   'read', 'grep', 'glob', 'ls', 'webfetch', 'websearch', 'todowrite', 'task', 'agent', 'bashoutput', 'killshell', 'exitplanmode', 'askuserquestion', 'skill', 'toolsearch',
+  // Messaging between agents: text only, no file writes.
+  'subagenthandback', 'sendmessage',
   // Copilot CLI
   'view', 'search', 'rg', 'fetch', 'web_fetch', 'report_intent', 'think', 'ask_user', 'read_bash', 'list_bash', 'stop_bash',
   // agy
