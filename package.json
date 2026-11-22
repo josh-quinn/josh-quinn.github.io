@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "lint": "astro check",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "agents:sync": "tsx tools/agents/sync.ts"
   },
   "dependencies": {
     "astro": "^7.4.13",
@@ -22,6 +23,7 @@
     "@astrojs/check": "^0.9.12",
     "@playwright/test": "^1.65.1",
     "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.1.1"
   }
