@@ -37,6 +37,33 @@ describe('config', () => {
     expect(readFileSync(file).equals(before)).toBe(true);
   });
 
+  it('deep-merges nested objects: a partial nested override keeps sibling defaults', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    const defaults = { timeoutMs: 600000, ai: { backend: 'claude', model: 'sonnet', auditor: { backend: 'claude', model: 'haiku' } } };
+    loadToolConfig('gate', defaults);
+    writeFileSync(join(tmp, 'gate', 'config.yaml'), 'ai:\n  auditor:\n    model: opus\n');
+    expect(loadToolConfig('gate', defaults)).toEqual({
+      timeoutMs: 600000,
+      ai: { backend: 'claude', model: 'sonnet', auditor: { backend: 'claude', model: 'opus' } },
+    });
+  });
+
+  it('replaces arrays instead of merging them, and does not mutate the defaults', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    const defaults = { list: [1, 2, 3], nested: { tags: ['a', 'b'] } };
+    loadToolConfig('gate', defaults);
+    writeFileSync(join(tmp, 'gate', 'config.yaml'), 'list: [9]\nnested:\n  tags: []\n');
+    expect(loadToolConfig('gate', defaults)).toEqual({ list: [9], nested: { tags: [] } });
+    expect(defaults).toEqual({ list: [1, 2, 3], nested: { tags: ['a', 'b'] } });
+  });
+
+  it('lets a scalar in the file replace a nested default object', () => {
+    process.env.TOOLS_CONFIG = tmp;
+    loadToolConfig('gate', { ai: { backend: 'claude' } });
+    writeFileSync(join(tmp, 'gate', 'config.yaml'), 'ai: off\n');
+    expect(loadToolConfig('gate', { ai: { backend: 'claude' } })).toEqual({ ai: 'off' });
+  });
+
   it('uses the legacy JQ_TOOLS_CONFIG when TOOLS_CONFIG is unset', () => {
     process.env.JQ_TOOLS_CONFIG = tmp;
     expect(toolsConfigRoot()).toBe(tmp);
