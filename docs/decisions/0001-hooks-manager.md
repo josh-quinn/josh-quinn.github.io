@@ -26,7 +26,8 @@ Adopt lefthook, pinned to an exact version as an npm devDependency (the plan's d
 - lefthook repo, `docs/configuration/glob.md`, `root.md`, `ai.md`: https://github.com/evilmartians/lefthook
 - npm package postinstall (`postinstall.js`, `get-exe.js`) read from the published tarball: https://www.npmjs.com/package/lefthook
 - pre-commit: https://pre-commit.com and https://github.com/pre-commit/pre-commit
-- Not run: lefthook is not installed on the author's machine; Task 5 installs it.
+- Not run here: lefthook was not installed on the author's machine when this ADR was written.
+- Task 5 (**run**): `npm install -D --save-exact lefthook@2.2.2`, whose postinstall wrote `.git/hooks/pre-push`. `lefthook validate` passed on `lefthook.yml`. `lefthook run pre-push` on a non-task branch printed the gate's one-line notice and passed. The `ai:` block is not used: the agent hooks are plain committed config files (see 0004), because lefthook has no agy provider.
 
 ## Privacy-audit verdict
 
