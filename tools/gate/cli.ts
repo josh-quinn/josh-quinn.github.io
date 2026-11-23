@@ -33,8 +33,13 @@ export const GATE_DEFAULTS = {
   timeoutMs: DEFAULT_TIMEOUT_MS,
   /** Base for the changed-file list that `when` globs match against. */
   baseRef: 'origin/main',
-  /** Default backend and model for AI checks that do not name their own. */
-  ai: { backend: 'claude', model: 'sonnet' },
+  /**
+   * Backend and model for AI checks that do not name their own in gate.yaml. A per-check entry
+   * in the config file, `ai.<check name>: {backend, model}` (calibrated per eval, see
+   * docs/decisions/0006-ai-eval-models.md), wins over this flat default. `model: default`
+   * leaves the CLI's own default model.
+   */
+  ai: { backend: 'claude', model: 'sonnet' } as { backend: string; model: string; [check: string]: unknown },
 };
 export type GateConfig = typeof GATE_DEFAULTS;
 

@@ -109,6 +109,19 @@ describe('runChecks: ai', () => {
     expect(res.status).toBe('pass');
   });
 
+  it('takes backend and model from the per-check config (ai.<check name>) before the flat default', async () => {
+    const cmd = `echo "$GATE_AI_BACKEND/$GATE_AI_MODEL" >&2; echo '{"score":90,"passes":true,"issues":[]}'`;
+    const [named, other, pinned] = await runChecks(
+      [ai('design-critic', cmd), ai('other', cmd), ai('auditor', cmd, { backend: 'claude', model: 'opus' })],
+      [],
+      { cwd: repo, taskId: 'T1', ai: { backend: 'claude', model: 'sonnet', 'design-critic': { backend: 'agy', model: 'm3' }, auditor: { backend: 'copilot' } } },
+    );
+    expect(named).toMatchObject({ status: 'pass', backend: 'agy', model: 'm3' });
+    expect(other).toMatchObject({ backend: 'claude', model: 'sonnet' });
+    // gate.yaml's own backend/model on the check wins over the config.
+    expect(pinned).toMatchObject({ backend: 'claude', model: 'opus' });
+  });
+
   it("output 'not json' gives error", async () => {
     expect((await one(ai('a', 'echo not json'))).status).toBe('error');
   });
@@ -139,6 +152,16 @@ describe('parseAiOutput', () => {
     expect(parseAiOutput('\n  {"score":80,"passes":true,"issues":["x"]}\n\n')).toEqual({ score: 80, passes: true, issues: ['x'] });
   });
   it.each([
+    ['score 0', 0],
+    ['score 100', 100],
+    ['a fractional score', 72.5],
+  ])('accepts %s (range 0-100 inclusive)', (_label, score) => {
+    expect(parseAiOutput(JSON.stringify({ score, passes: false, issues: [] }))?.score).toBe(score);
+  });
+  it('accepts zero token counts', () => {
+    expect(parseAiOutput('{"score":1,"passes":true,"issues":[],"tokens":{"input":0,"output":0}}')?.tokens).toEqual({ input: 0, output: 0 });
+  });
+  it.each([
     ['not json', 'not json'],
     ['two objects', '{"score":1,"passes":true,"issues":[]}\n{"score":1,"passes":true,"issues":[]}'],
     ['prose around the object', 'Here you go: {"score":1,"passes":true,"issues":[]}'],
@@ -149,6 +172,11 @@ describe('parseAiOutput', () => {
     ['string passes', '{"score":1,"passes":"true","issues":[]}'],
     ['issues not an array of strings', '{"score":1,"passes":true,"issues":[1]}'],
     ['bad tokens', '{"score":1,"passes":true,"issues":[],"tokens":{"input":"x","output":1}}'],
+    ['score below 0', '{"score":-1,"passes":false,"issues":[]}'],
+    ['score above 100', '{"score":100.5,"passes":true,"issues":[]}'],
+    ['negative input tokens', '{"score":1,"passes":true,"issues":[],"tokens":{"input":-1,"output":1}}'],
+    ['fractional output tokens', '{"score":1,"passes":true,"issues":[],"tokens":{"input":1,"output":1.5}}'],
+    ['missing output tokens', '{"score":1,"passes":true,"issues":[],"tokens":{"input":1}}'],
     ['unknown key', '{"score":1,"passes":true,"issues":[],"verdict":"ok"}'],
     ['null', 'null'],
     ['empty', ''],

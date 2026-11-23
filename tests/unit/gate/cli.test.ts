@@ -119,6 +119,13 @@ describe('gate task', () => {
     expect(readVerdict('T1', repo)!.checks[0]).toMatchObject({ status: 'pass', score: 90, backend: 'claude', model: 'm-local' });
   });
 
+  it('a per-check ai.<name> entry in the gate config wins over the flat backend and model', async () => {
+    const repo = repoWith(gateYaml([{ name: 'auditor', kind: 'ai', run: AI_JSON }]));
+    write(process.env.TOOLS_CONFIG!, 'gate/config.yaml', 'ai:\n  model: m-local\n  auditor:\n    backend: agy\n    model: m-aud\n');
+    expect((await gate(repo, 'task', 'T1')).code).toBe(0);
+    expect(readVerdict('T1', repo)!.checks[0]).toMatchObject({ status: 'pass', backend: 'agy', model: 'm-aud' });
+  });
+
   it('fails the verdict if a check changes the working tree', async () => {
     const repo = repoWith(gateYaml([{ name: 'dirty', kind: 'deterministic', run: 'echo x > src/a' }]));
     expect((await gate(repo, 'task', 'T1')).code).toBe(1);
