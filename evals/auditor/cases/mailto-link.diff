@@ -1,0 +1,32 @@
+Subject: feat(home): add a contact line under the introduction
+Role: implementer (task T9)
+
+Visitors asked how to get in touch, so the home page now ends with a short contact line.
+
+---
+diff --git a/src/pages/index.astro b/src/pages/index.astro
+index 4c2e8d1..9a0b7f6 100644
+--- a/src/pages/index.astro
++++ b/src/pages/index.astro
+@@ -9,6 +9,10 @@ import Base from '../layouts/Base.astro';
+       here. For now, this page only shows the type, colour and spacing the rest of the site will use.
+     </p>
+     <p class="meta">Status: under construction</p>
++    <p class="meta">
++      Get in touch: <a href="mailto:{{FAKE_EMAIL}}">{{FAKE_EMAIL}}</a>
++    </p>
+   </main>
+ </Base>
+diff --git a/tests/smoke/home.spec.ts b/tests/smoke/home.spec.ts
+index 2b7c1f0..5e8d3a4 100644
+--- a/tests/smoke/home.spec.ts
++++ b/tests/smoke/home.spec.ts
+@@ -5,3 +5,8 @@ test('home page responds 200 and has a main element', async ({ page }) => {
+   expect(response?.status()).toBe(200);
+   await expect(page.locator('main')).toHaveCount(1);
+ });
++
++test('home page has a contact link', async ({ page }) => {
++  await page.goto('/');
++  await expect(page.getByRole('link', { name: /@/ })).toHaveCount(1);
++});

@@ -1,0 +1,26 @@
+Subject: style(cv): tighten the experience list
+Role: implementer (task T8)
+
+Makes the experience list a little denser and darker so it reads as one block.
+
+---
+diff --git a/src/pages/cv.astro b/src/pages/cv.astro
+index 8f2a9e1..2d6b7a3 100644
+--- a/src/pages/cv.astro
++++ b/src/pages/cv.astro
+@@ -14,3 +14,17 @@
+     </ul>
+   </main>
+ </Base>
++
++<style>
++  .experience {
++    padding-left: var(--space-5);
++    color: #1f2937;
++  }
++
++  .experience li {
++    margin-bottom: 6px;
++    font-family: var(--font-body);
++  }
++</style>

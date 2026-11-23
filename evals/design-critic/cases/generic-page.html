@@ -1,0 +1,63 @@
+<!doctype html>
+<!--
+  Calibration case for the design critic: a deliberately generic page in the
+  "Tailwind defaults" style that DESIGN.md forbids. The critic must FAIL it.
+  Self-contained (no network); content is fictional.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Robin Placeholder | Portfolio</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #111827; background: #ffffff; line-height: 1.5; }
+      nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 48px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+      nav .logo { font-weight: 800; font-size: 22px; color: #4f46e5; }
+      nav a { margin-left: 28px; color: #4b5563; text-decoration: none; font-weight: 500; }
+      .hero { padding: 120px 24px 140px; text-align: center; color: #ffffff; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%); }
+      .hero h1 { font-size: 72px; font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
+      .hero p { margin: 24px auto 40px; max-width: 640px; font-size: 22px; color: #e0e7ff; }
+      .btn { display: inline-block; padding: 16px 36px; border-radius: 9999px; background: #ffffff; color: #4f46e5; font-weight: 700; font-size: 18px; text-decoration: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,.25), 0 8px 10px -6px rgba(0,0,0,.2); }
+      .btn.secondary { margin-left: 12px; background: rgba(255,255,255,.15); color: #ffffff; }
+      section { padding: 96px 48px; max-width: 1200px; margin: 0 auto; }
+      section h2 { text-align: center; font-size: 44px; font-weight: 800; margin-bottom: 56px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+      .card { padding: 36px; border-radius: 24px; background: #ffffff; box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); }
+      .card .icon { font-size: 44px; margin-bottom: 16px; }
+      .card h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #312e81; }
+      .card p { color: #6b7280; }
+      .stats { display: flex; justify-content: center; gap: 64px; padding: 64px 24px; background: #eef2ff; text-align: center; }
+      .stats strong { display: block; font-size: 48px; font-weight: 900; color: #4f46e5; }
+      footer { padding: 48px; text-align: center; color: #9ca3af; background: #111827; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <span class="logo">✨ Robin.dev</span>
+      <div><a href="#about">About</a><a href="#work">Work</a><a href="#contact">Contact</a></div>
+    </nav>
+    <header class="hero">
+      <h1>Building the Future,<br />One Line at a Time 🚀</h1>
+      <p>Passionate full-stack engineer crafting delightful, scalable experiences that users love.</p>
+      <a class="btn" href="#work">View my work</a><a class="btn secondary" href="#contact">Let's talk 👋</a>
+    </header>
+    <section id="work">
+      <h2>What I Do</h2>
+      <div class="grid">
+        <div class="card"><div class="icon">💻</div><h3>Web Development</h3><p>Modern, responsive apps built with the latest frameworks and best practices.</p></div>
+        <div class="card"><div class="icon">⚡</div><h3>Performance</h3><p>Lightning-fast experiences optimised for every device and every user.</p></div>
+        <div class="card"><div class="icon">🎨</div><h3>UI/UX Design</h3><p>Beautiful, intuitive interfaces that convert visitors into customers.</p></div>
+        <div class="card"><div class="icon">☁️</div><h3>Cloud</h3><p>Scalable infrastructure that grows with your business needs.</p></div>
+        <div class="card"><div class="icon">🤖</div><h3>AI Integration</h3><p>Smart features powered by cutting-edge machine learning.</p></div>
+        <div class="card"><div class="icon">🔒</div><h3>Security</h3><p>Enterprise-grade protection for your users and their data.</p></div>
+      </div>
+    </section>
+    <div class="stats">
+      <div><strong>50+</strong>Projects</div>
+      <div><strong>10x</strong>Faster</div>
+      <div><strong>100%</strong>Satisfaction</div>
+    </div>
+    <footer>Made with ❤️ by Robin</footer>
+  </body>
+</html>

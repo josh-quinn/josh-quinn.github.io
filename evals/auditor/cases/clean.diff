@@ -1,0 +1,48 @@
+Subject: feat(home): add profile links to the footer
+Role: implementer (task T9; the test author's commit came first)
+
+Adds the two allowed contact routes (GitHub and LinkedIn profile links) in a small mono
+footer, styled only with tokens.
+
+---
+diff --git a/src/pages/index.astro b/src/pages/index.astro
+index 4c2e8d1..7e1d2c9 100644
+--- a/src/pages/index.astro
++++ b/src/pages/index.astro
+@@ -10,5 +10,22 @@ import Base from '../layouts/Base.astro';
+     </p>
+     <p class="meta">Status: under construction</p>
+   </main>
++  <footer class="page site-footer">
++    <span class="label">Elsewhere</span>
++    <ul class="links">
++      <li><a href="https://github.com/robin-placeholder">GitHub</a></li>
++      <li><a href="https://www.linkedin.com/in/robin-placeholder/">LinkedIn</a></li>
++    </ul>
++  </footer>
+ </Base>
++
++<style>
++  .links {
++    display: flex;
++    gap: var(--space-4);
++    padding: 0;
++    list-style: none;
++    font-family: var(--font-ui);
++    font-size: var(--text-small);
++  }
++</style>
+diff --git a/tests/smoke/home.spec.ts b/tests/smoke/home.spec.ts
+index 2b7c1f0..6f0a9b2 100644
+--- a/tests/smoke/home.spec.ts
++++ b/tests/smoke/home.spec.ts
+@@ -5,3 +5,11 @@ test('home page responds 200 and has a main element', async ({ page }) => {
+   expect(response?.status()).toBe(200);
+   await expect(page.locator('main')).toHaveCount(1);
+ });
++
++test('footer links only to the GitHub and LinkedIn profiles', async ({ page }) => {
++  await page.goto('/');
++  const hrefs = await page.locator('footer a').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).hostname));
++  expect(hrefs).toEqual(['github.com', 'www.linkedin.com']);
++});

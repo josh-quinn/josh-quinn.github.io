@@ -5,9 +5,29 @@ import { parseGateFile } from '../../../tools/gate/checks';
 describe("the repo's gate.yaml", () => {
   const gate = parseGateFile(readFileSync('gate.yaml', 'utf8'));
 
-  it('defines the deterministic task checks in order', () => {
-    expect(gate.task.map((c) => c.name)).toEqual(['build', 'unit', 'integrity', 'acceptance', 'axe', 'privacy', 'links']);
-    expect(gate.task.every((c) => c.kind === 'deterministic')).toBe(true);
+  it('defines the task checks in order: deterministic first, then the AI checks', () => {
+    expect(gate.task.map((c) => c.name)).toEqual([
+      'build', 'unit', 'integrity', 'acceptance', 'axe', 'privacy', 'links', 'stylelint', 'deps', 'visual', 'design-critic', 'auditor',
+    ]);
+    expect(gate.task.filter((c) => c.kind === 'ai').map((c) => c.name)).toEqual(['design-critic', 'auditor']);
+  });
+
+  it('runs the design critic in task mode only when styles, pages or DESIGN.md change', () => {
+    expect(gate.task.find((c) => c.name === 'design-critic')!.when).toEqual(['src/**/*.{astro,css}', 'DESIGN.md']);
+  });
+
+  it('design mode captures the references, then runs the critic', () => {
+    expect(gate.design.map((c) => [c.name, c.kind])).toEqual([
+      ['refs', 'deterministic'],
+      ['design-critic', 'ai'],
+    ]);
+  });
+
+  it('AI checks leave backend and model to the gate config (ai.<check name>)', () => {
+    for (const c of [...gate.task, ...gate.design].filter((x) => x.kind === 'ai')) {
+      expect(c.backend).toBeUndefined();
+      expect(c.model).toBeUndefined();
+    }
   });
 
   it('wires acceptance and integrity to $GATE_TASK', () => {

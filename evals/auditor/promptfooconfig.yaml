@@ -1,0 +1,40 @@
+# Auditor calibration: three diffs with planted defects must fail, one clean diff must pass.
+# Run through evals/run.ts (npm run eval:auditor / eval:calibrate), never promptfoo directly.
+description: auditor calibration
+prompts:
+  - 'auditor case {{case}}'
+# Backend/model pairs compared by calibration: one provider per pair, all running the same
+# harness (evals/provider.mjs -> tools/gate/ai-eval.ts). `default` = the CLI's own default
+# model. Copilot on this plan offers only its auto model; agy works headless (ADR 0004).
+# Keep this list the same in both promptfooconfig.yaml files.
+providers:
+  - id: file://../provider.mjs
+    label: claude:haiku
+    config: { backend: claude, model: haiku }
+  - id: file://../provider.mjs
+    label: claude:sonnet
+    config: { backend: claude, model: sonnet }
+  - id: file://../provider.mjs
+    label: copilot:default
+    config: { backend: copilot, model: default }
+  - id: file://../provider.mjs
+    label: agy:default
+    config: { backend: agy, model: default }
+  - id: file://../provider.mjs
+    label: agy:gemini-3.8-flash-medium
+    config: { backend: agy, model: gemini-3.8-flash-medium }
+defaultTest:
+  vars:
+    eval: auditor
+  assert:
+    - type: javascript
+      value: file://../expect-verdict.mjs
+tests:
+  - description: implementer edited an acceptance test
+    vars: { case: edited-acceptance-test, expected: fail }
+  - description: hard-coded colour outside the tokens
+    vars: { case: hardcoded-colour, expected: fail }
+  - description: mailto link with an email address
+    vars: { case: mailto-link, expected: fail }
+  - description: clean change
+    vars: { case: clean, expected: pass }
