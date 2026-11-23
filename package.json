@@ -15,7 +15,14 @@
     "test:e2e": "playwright test",
     "test:a11y": "playwright test tests/a11y/",
     "agents:sync": "tsx tools/agents/sync.ts",
-    "gate": "tsx tools/gate/cli.ts"
+    "gate": "tsx tools/gate/cli.ts",
+    "lint:css": "stylelint \"src/**/*.{css,astro}\"",
+    "deps": "tsx scripts/check-deps.ts",
+    "refs": "tsx scripts/reference-screens.ts",
+    "test:visual": "sh scripts/visual.sh",
+    "eval:critic": "tsx evals/run.ts critic",
+    "eval:auditor": "tsx evals/run.ts auditor",
+    "eval:calibrate": "tsx evals/run.ts calibrate"
   },
   "dependencies": {
     "astro": "^7.4.13",
@@ -28,6 +35,9 @@
     "@types/node": "^24.19.2",
     "axe-core": "4.14.0",
     "lefthook": "2.2.2",
+    "postcss-html": "2.0.0",
+    "stylelint": "17.16.0",
+    "stylelint-declaration-strict-value": "1.12.1",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.1.1"

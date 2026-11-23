@@ -17,9 +17,16 @@ npm run lint           # astro check
 npm run test:unit      # Vitest
 npm run test:e2e       # Playwright against `astro preview` (build first)
 npm run test:a11y      # axe on every built page (also part of test:e2e)
+npm run lint:css       # stylelint: colour, font and spacing only from tokens
+npm run deps           # no CSS framework or component kit in the dependencies
+npm run test:visual    # visual baselines, in the Linux Playwright image (needs Docker)
 ```
 
-CI runs `build`, `unit` and `e2e` jobs on pull requests and pushes to `main`.
+The design system is `DESIGN.md` (tokens in `src/styles/tokens.css`). The AI design critic and
+auditor, and their calibration, are in `evals/` (see `evals/README.md`).
+
+CI runs `build`, `unit`, `stylelint`, `deps`, `visual`, `e2e` and `privacy` jobs on pull
+requests and pushes to `main`.
 Pushes to `main` deploy to GitHub Pages.
 
 ## Gate

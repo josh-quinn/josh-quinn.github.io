@@ -1,0 +1,152 @@
+/*
+ * Element defaults on top of tokens.css. Colour, font and spacing come only from tokens
+ * (enforced by stylelint). See DESIGN.md for the rules behind each choice.
+ */
+@import url("./fonts.css");
+@import url("./tokens.css");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--root-size);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  text-size-adjust: none;
+  background-color: var(--paper);
+  background-image: var(--paper-texture);
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: var(--weight-body);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-weight: var(--weight-body);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--text-h1);
+  font-style: italic;
+}
+
+h2 {
+  font-size: var(--text-h2);
+  font-style: italic;
+}
+
+h3 {
+  font-size: var(--text-h3);
+  font-weight: var(--weight-strong);
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 var(--space-4);
+}
+
+p {
+  hyphens: auto;
+  text-align: justify;
+}
+
+ul,
+ol {
+  padding-left: var(--space-5);
+}
+
+li {
+  margin-bottom: var(--space-1);
+}
+
+strong {
+  font-weight: var(--weight-strong);
+}
+
+a {
+  color: var(--link);
+  text-decoration-line: underline;
+  text-decoration-color: var(--line-strong);
+  text-decoration-thickness: var(--border-width);
+  text-underline-offset: 0.18em;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+:focus-visible {
+  border-radius: var(--radius-1);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+::selection {
+  background-color: var(--selection);
+}
+
+hr {
+  margin: var(--space-6) 0;
+  border: 0;
+  border-top: var(--border);
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+}
+
+/* Layout: one narrow column, compact. */
+.page {
+  max-width: calc(var(--measure) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-7) var(--gutter) var(--space-8);
+}
+
+/* Mono UI text: labels, metadata, small caps-like headers. */
+.label {
+  display: block;
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-body);
+  text-transform: uppercase;
+}
+
+.meta {
+  color: var(--muted);
+  text-align: start;
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+}
+
+/* Terminal-style box: hairline border, mono, no fill, no shadow. */
+.box {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+}
