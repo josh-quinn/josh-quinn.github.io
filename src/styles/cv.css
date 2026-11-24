@@ -1,0 +1,151 @@
+/*
+ * CV pages (/cv/ and the views). Tokens only (stylelint). The page frame comes from the design
+ * system (components.css: announcement bar, nav bar, bracket links, wide container and split;
+ * base.css: labels, islands, facts, motion). See DESIGN.md and specs/001-cv-page/spec.md.
+ *
+ * .cv-notice   the "Sample content" notice: a mono tag inside the announcement bar
+ * .cv-role     the professional label under the h1
+ * .cv-summary  the summary: ragged-right, not hyphenated
+ * .cv-views    the CV views nav: a mono label in front of bracket links
+ * .cv-section  a CV section; sections after the first sit under a hairline
+ */
+
+.cv-notice {
+  display: inline-block;
+  margin: 0 var(--space-2) 0 0;
+  padding: 0 var(--space-2);
+  border: var(--border);
+  border-radius: var(--radius-1);
+  background-color: var(--paper-raised);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-label);
+  font-style: normal;
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-body);
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.cv h1 {
+  margin-bottom: var(--space-1);
+}
+
+.cv-role {
+  margin: 0 0 var(--space-4);
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-size: var(--text-detail);
+  font-style: italic;
+}
+
+/* The summary reads as a plain ragged paragraph at every width. */
+.cv .cv-summary {
+  hyphens: manual;
+  text-align: start;
+  text-wrap: wrap;
+}
+
+/* CV views: a mono label in front of bracket links (on its own line on narrow screens). */
+.cv-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  margin: var(--space-5) 0 0;
+}
+
+.cv-views .label {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.cv-views ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cv-views li {
+  margin: 0;
+}
+
+.cv-views .bracket {
+  padding: var(--space-2) var(--space-3);
+}
+
+.cv-views .bracket::before {
+  margin-right: var(--space-1);
+}
+
+.cv-views .bracket::after {
+  margin-left: var(--space-1);
+}
+
+@media (min-width: 48rem) {
+  .cv-views .label {
+    flex-basis: auto;
+  }
+}
+
+/* Profile links inside the facts island sit on one line. */
+.cv-profiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+}
+
+/* Sections after the first: a hairline and space above, no boxes. */
+.cv-section + .cv-section {
+  margin: var(--space-6) 0 0;
+  padding: var(--space-5) 0 0;
+  border-top: var(--border);
+}
+
+.cv-entry {
+  margin: 0 0 var(--space-4);
+}
+
+.cv-entry h3 {
+  margin: 0 0 var(--space-1);
+}
+
+.cv-entry p {
+  margin: 0 0 var(--space-1);
+}
+
+/* Keywords: a plain inline list, separated by a muted middle dot. */
+.cv-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-detail);
+  list-style: none;
+}
+
+.cv-keywords li {
+  margin: 0;
+}
+
+.cv-keywords li + li::before {
+  padding: 0 var(--space-2);
+  color: var(--muted);
+  content: "·" / "";
+}
+
+/* Highlights: a plain list, a little smaller than the body text. */
+.cv-highlights {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-soft);
+  font-size: var(--text-detail);
+}
+
+/* Long words and URLs wrap rather than widen the page. */
+.cv main {
+  overflow-wrap: anywhere;
+}
