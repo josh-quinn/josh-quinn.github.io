@@ -74,3 +74,8 @@ promptfoo 0.126.0 is installed in its own folder, `evals/` (own `package.json` a
 - **One unguarded run.** While setting up, `npx promptfoo --version` was run once in `evals/` without the lock-down env. It may have made an update check. Every eval run since has used `evals/run.ts`.
 
 Promptfoo stays **not cleared for the work laptop** (`evals/README.md` says so).
+
+### Evidence: other tools used in Task 6 (not dependencies of the site)
+
+- **Playwright Linux image `mcr.microsoft.com/playwright:v1.65.1-noble`**, Microsoft's official image for the installed `@playwright/test` 1.65.1. It is used only to render the visual baselines and run the visual suite (`scripts/visual.sh` locally, the CI `visual` job), so that macOS and CI render the same pixels. It is pulled by its exact version tag, and CI checks that the tag matches the installed package. It has no access to AI tokens or private data: it gets the repository checkout only.
+- **fontTools 4.60.1 (`pyftsubset`) through `uvx`**, used once (**run**) to subset the OFL fonts to Latin and convert them to woff2. Only the output files are committed (`public/fonts/`). Nothing installs or runs it in the build, the tests or CI.
