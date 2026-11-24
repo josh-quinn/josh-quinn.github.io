@@ -79,7 +79,7 @@ Use them for small, self-contained things (a terminal snippet, a set of facts), 
 All in `src/styles/components.css`: CSS only, tokens only, no client JS.
 
 - **Announcement bar** (`.announce`, an `aside` first in `body`): a thin full-width strip at the very top, on `--paper-cool` over a hairline, with one short centred italic serif line at `--text-detail`. At most one per page.
-- **Mono nav bar** (`header.navbar`): a row over a hairline. The first link (`.navbar-brand`) is the site name; other links sit in a `ul`. All are Departure Mono, uppercase, at `--text-label`, tracked `--tracking-label`, not underlined, in `--ink-soft` (`--ink` for the brand, on hover and for `aria-current="page"`). It links only to pages that exist in the build.
+- **Mono nav bar** (`header.navbar`): the site's links set directly on the paper, with a hairline underneath. The first link (`.navbar-brand`) is the site name; other links sit in a `ul`. All are Departure Mono, uppercase, at `--text-label`, tracked `--tracking-label`, not underlined, in `--ink-soft` (`--ink` for the brand, on hover and for `aria-current="page"`). It links only to pages that exist in the build.
 - **Bracket link** (`a.bracket`): `[ LIKE THIS ]`. Mono, uppercase, tracked, on a faint raised fill (`--paper-raised`) with a hairline border and a 2px radius, no shadow. The brackets are generated content with empty alt text, so they are not part of the link's accessible name. Hover and `aria-current="page"` darken the text and the border.
 - **Split with a sticky media island**: see "Layout". The media island usually has a bar on top, a terminal body and a caption strip at the bottom.
 - **Typed line** (`.typed`, with `--chars` set to its length): a terminal command types itself once, then its output (`.typed-out`) appears. At rest, and under reduced motion, it is plain text.
@@ -105,7 +105,7 @@ All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unl
 - **Colours:** the table above. **Paper:** `--grid-cell` 20px, `--grid-minor-step`, `--grid-cross-arm`, `--grid-minor`, `--grid-major`, `--grid-cross`, `--paper-vignette`, `--paper-top-wash` and `--paper-fade`.
 - **Borders:** `--border-width` 1px, `--border` (hairline in `--line`), `--border-strong`.
 - **Radii:** `--radius-0` 0, `--radius-1` 2px, `--radius-2` 4px. Nothing rounder.
-- **Shadow:** `--shadow-focus` only (the focus ring). **No drop shadows**: islands and panels are separated by hairline borders, never by shadows. For the design critic, a single faint shadow on one panel is a deduction (10 points). Heavy shadows, shadows on several panels, or shadowed cards are on the never list.
+- **Shadow (this site's rule):** `--shadow-focus` only (the focus ring). This site's pages use **no drop shadows**: islands and panels are separated by hairline borders, never by shadows. How the design critic scores a shadow on a candidate page is set in `evals/design-critic/rubric.md`.
 - **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--duration-enter` 700ms, `--stagger` 90ms, `--rise` 6px, `--blink` 1.1s, `--duration-type` 1.2s, `--ease`, `--ease-out`. Nothing animates under `prefers-reduced-motion: reduce`.
 
 ## Never
@@ -114,7 +114,7 @@ All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unl
 - Decorative colour gradients: gradient heroes, buttons, text or fills. Structural gradients that draw the paper grid and vignette (`paper.css`) are the only exception, and stylelint allows gradient functions nowhere else.
 - An oversized hero, or a giant centred headline.
 - Emoji icons, and stock icon sets.
-- Generic card grids, and drop shadows on cards or panels (see "Shadow").
+- Generic card grids, and, on this site's pages, drop shadows on cards or panels (see "Shadow").
 - Client-side JavaScript, including for motion.
 - Purple or indigo accents.
 - Pure black text or a pure white background.
