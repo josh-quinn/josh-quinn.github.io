@@ -92,9 +92,6 @@
   line-height: var(--leading-body);
   text-decoration-line: none;
   text-transform: uppercase;
-  transition:
-    color var(--duration-fast) var(--ease),
-    border-color var(--duration-fast) var(--ease);
 }
 
 .bracket::before {
@@ -189,5 +186,11 @@
   .typed-out {
     animation: appear var(--duration-fast) var(--ease) both;
     animation-delay: calc(var(--duration-enter) + var(--duration-type));
+  }
+
+  .bracket {
+    transition:
+      color var(--duration-fast) var(--ease),
+      border-color var(--duration-fast) var(--ease);
   }
 }

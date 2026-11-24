@@ -175,6 +175,11 @@ test.describe('home page', () => {
       [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).animationName !== 'none').map((el) => el.tagName + '.' + el.className),
     );
     expect(animated).toEqual([]);
+    // No transitions are declared either (links and bracket links fade only with motion allowed).
+    const transitioned = await page.evaluate(() =>
+      [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).transitionProperty !== 'all').map((el) => el.tagName + '.' + el.className),
+    );
+    expect(transitioned).toEqual([]);
   });
 });
 
