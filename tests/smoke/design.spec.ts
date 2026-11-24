@@ -1,13 +1,33 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { htmlFiles } from '../helpers/dist';
+import { htmlFiles, urlPathOf } from '../helpers/dist';
 
-// DESIGN.md: technical paper, islands, CSS-only motion (none under reduced motion), no client JS.
+// DESIGN.md: technical paper, islands, CSS-only motion (none under reduced motion).
+// Client JS policy (docs/decisions/0008-home-terminal-js.md): only the home page may ship
+// one first-party module script, for the terminal. Every other page is JS-free.
 
-test('no built page ships client JavaScript', () => {
+const inlineHandler = /<[^>]+\son[a-z]+\s*=/i;
+
+test('no built page except the home page ships client JavaScript', () => {
   const files = htmlFiles();
   expect(files.length).toBeGreaterThan(0);
-  for (const f of files) expect(readFileSync(f, 'utf8'), f).not.toMatch(/<script\b/i);
+  const others = files.filter((f) => urlPathOf(f) !== '/');
+  expect(others.length).toBeGreaterThan(0);
+  for (const f of others) {
+    const html = readFileSync(f, 'utf8');
+    expect(html, `${f} has a <script>`).not.toMatch(/<script\b/i);
+    expect(html, `${f} has an inline on* handler`).not.toMatch(inlineHandler);
+  }
+});
+
+test('the home page ships at most one module script and no inline handlers', () => {
+  const home = htmlFiles().find((f) => urlPathOf(f) === '/');
+  expect(home, 'dist/index.html is built').toBeTruthy();
+  const html = readFileSync(home!, 'utf8');
+  const scripts = html.match(/<script\b[^>]*>/gi) ?? [];
+  expect(scripts.length, 'at most one <script> on the home page').toBeLessThanOrEqual(1);
+  for (const s of scripts) expect(s, 'the only script is type="module"').toMatch(/\btype=["']?module["']?/i);
+  expect(html, 'home page has an inline on* handler').not.toMatch(inlineHandler);
 });
 
 test.describe('home page', () => {

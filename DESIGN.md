@@ -76,7 +76,7 @@ Use them for small, self-contained things (a terminal snippet, a set of facts), 
 
 ## Components
 
-All in `src/styles/components.css`: CSS only, tokens only, no client JS.
+All in `src/styles/components.css`: CSS only, tokens only. The one JavaScript exception is the home-page terminal (see "Motion").
 
 - **Announcement bar** (`.announce`, an `aside` first in `body`): a thin full-width strip at the very top, on `--paper-cool` over a hairline, with one short centred italic serif line at `--text-detail`. At most one per page.
 - **Mono nav bar** (`header.navbar`): the site's links set directly on the paper, with a hairline underneath. The first link (`.navbar-brand`) is the site name; other links sit in a `ul`. All are Departure Mono, uppercase, at `--text-label`, tracked `--tracking-label`, not underlined, in `--ink-soft` (`--ink` for the brand, on hover and for `aria-current="page"`). It links only to pages that exist in the build.
@@ -86,7 +86,7 @@ All in `src/styles/components.css`: CSS only, tokens only, no client JS.
 
 ## Motion
 
-CSS only: no client JavaScript on any page (CV pages forbid it, and the rest of the site follows). Every animation is declared inside `@media (prefers-reduced-motion: no-preference)`, so with reduced motion nothing moves.
+CSS only. The only client JavaScript on the site is the home-page terminal's input and output (`docs/decisions/0008-home-terminal-js.md`): by default the terminal is a CSS-only scroll-driven demo, and clicking it or pressing Enter on it swaps in a small self-contained mock terminal with canned output. CV pages and every other page ship no JavaScript. JS never drives motion, and the mock terminal respects reduced motion. Every animation is declared inside `@media (prefers-reduced-motion: no-preference)`, so with reduced motion nothing moves.
 
 - **Rise and fade:** `.reveal` lines (opening label, paragraph, metadata) fade in and rise by `--rise` (6px), staggered by `--stagger` (90ms) through `.d1`-`.d6`.
 - **Focus-in:** the `h1` comes into focus from a slight blur.
@@ -115,7 +115,7 @@ All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unl
 - An oversized hero, or a giant centred headline.
 - Emoji icons, and stock icon sets.
 - Generic card grids, and, on this site's pages, drop shadows on cards or panels (see "Shadow").
-- Client-side JavaScript, including for motion.
+- Client-side JavaScript, including for motion. The sole exception is the home-page terminal's input and output (see "Motion").
 - Purple or indigo accents.
 - Pure black text or a pure white background.
 - Third-party names, logos or marks on the built site.
