@@ -1,0 +1,52 @@
+/*
+ * Technical paper: the page sits on an engineering grid (DESIGN.md "Paper").
+ * The only file where gradients are allowed (.stylelintrc.json): they draw structure here
+ * (grid lines, cross marks, a vignette), never decoration. Colours come from tokens.
+ *
+ * body::before  fixed grid: minor lines every cell/5, major lines every cell, and a small
+ *               cross at each major intersection.
+ * body::after   fixed vignette: a paper wash that lightens the grid across the top half
+ *               (full at the top, gone by mid-screen), a light wash at the edges, and a fade
+ *               towards the bottom.
+ */
+
+body::before,
+body::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+}
+
+body::before {
+  /* A cross arm is the top-left quadrant of a conic gradient, so it is 1px by one arm long. */
+  background-image:
+    conic-gradient(from 270deg at 1px var(--grid-cross-arm), var(--grid-cross) 25%, transparent 0),
+    conic-gradient(from 270deg at var(--grid-cross-arm) 1px, var(--grid-cross) 25%, transparent 0),
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-position:
+    0 calc(var(--grid-cross-arm) / -2 + 0.5px),
+    calc(var(--grid-cross-arm) / -2 + 0.5px) 0,
+    0 0,
+    0 0,
+    0 0,
+    0 0;
+  background-size:
+    var(--grid-cell) var(--grid-cell),
+    var(--grid-cell) var(--grid-cell),
+    var(--grid-cell) var(--grid-cell),
+    var(--grid-cell) var(--grid-cell),
+    var(--grid-minor-step) var(--grid-minor-step),
+    var(--grid-minor-step) var(--grid-minor-step);
+}
+
+body::after {
+  background-image:
+    linear-gradient(180deg, var(--paper-top-wash) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 30%, var(--paper-fade) 100%),
+    radial-gradient(ellipse 120% 90% at 50% 0%, transparent 55%, var(--paper-vignette) 100%);
+}

@@ -1,32 +1,13 @@
 Third-party credits
 
-1. pi-website (https://github.com/earendil-works/pi-website), MIT licence.
+1. Visual reference: pi.dev.
 
-   Design values in src/styles/tokens.css marked "(pi)" (colours, type sizes, weights,
-   leading, label tracking and a motion duration) are taken from pi-website. Only values
-   are reused, not code. See DESIGN.md, "Attribution". Licence text:
-
-   MIT License
-
-   Copyright (c) 2026 Earendil Inc. and contributors
-
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE.
+   The site's look follows pi.dev's light theme, its primary visual reference. Some colour
+   and size values in src/styles/tokens.css (marked "(ref)") match values observed on
+   pi.dev's public stylesheet. That stylesheet is not published under a licence, and none
+   of its code is used here: the values are reused only as plain colour and size facts,
+   and all CSS in this repository is this site's own. No logo, name or mark of pi.dev
+   appears on the built site. See DESIGN.md, "Credits".
 
 2. Fonts in public/fonts/, each under the SIL Open Font License 1.1. The licence and
    copyright notice for each family are in its folder (public/fonts/<family>/OFL.txt):

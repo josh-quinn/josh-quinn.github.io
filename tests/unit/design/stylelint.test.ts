@@ -35,6 +35,16 @@ describe('stylelint: colour, font and spacing only from tokens', () => {
     expect(await rulesFor('gradient.css')).toContain('function-disallowed-list');
   });
 
+  it('allows structural gradients only in the paper layer (src/styles/paper.css)', async () => {
+    const code = 'body::before {\n  background-image: linear-gradient(var(--grid-minor) 0 1px, transparent 1px);\n}\n';
+    const lint = async (rel: string) =>
+      (
+        await stylelint.lint({ code, codeFilename: join(root, rel), configFile: join(root, '.stylelintrc.json'), configBasedir: root })
+      ).results.flatMap((r) => r.warnings.map((w) => w.rule));
+    expect(await lint('src/styles/paper.css')).toEqual([]);
+    expect(await lint('src/styles/base.css')).toContain('function-disallowed-list');
+  });
+
   it('lints <style> blocks in .astro files too', async () => {
     expect(await rulesFor('hex-colour.astro')).toContain('scale-unlimited/declaration-strict-value');
   });

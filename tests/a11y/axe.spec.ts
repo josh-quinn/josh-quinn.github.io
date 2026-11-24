@@ -12,6 +12,10 @@ test('dist contains built pages to check', () => {
 for (const path of pages) {
   test(`no axe violations on ${path}`, async ({ page }) => {
     await page.goto(path);
+    // Let the entrance animations finish (they start at opacity 0); the cursor blinks forever.
+    await page.evaluate(() =>
+      Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished)),
+    );
     const { violations } = await new AxeBuilder({ page }).analyze();
     const summary = violations.map((v) => `${v.id} (${v.impact}): ${v.help} [${v.nodes.map((n) => n.target.join(' ')).join(', ')}]`);
     expect(summary).toEqual([]);

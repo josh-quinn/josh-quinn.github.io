@@ -1,32 +1,41 @@
 /*
  * Design tokens. Mirrors DESIGN.md "Tokens"; change both together.
- * The only file (with fonts.css) allowed raw colour, font and spacing values (.stylelintrc.json).
- * Values marked (pi) are taken from pi-website (MIT); see NOTICE and DESIGN.md "Attribution".
+ * The only files allowed raw colour, font and spacing values are this one and fonts.css
+ * (.stylelintrc.json). Values marked (ref) match values observed on the reference site's
+ * public stylesheet; they are reused as plain colour and size facts (see DESIGN.md
+ * "Credits"). The CSS itself is this site's own.
  */
 
 :root {
   color-scheme: light;
 
   /* Colour: warm paper, slate ink, one restrained accent. */
-  --paper: #ebe7e4; /* (pi) moonstone */
-  --paper-deep: #dacbc2; /* (pi) parchment */
-  --paper-raised: #f3f2f0; /* (pi) warm white */
-  --ink: #252f3df5; /* (pi) evening blue at .96 alpha = rgba(37,47,61,.96) */
-  --ink-soft: #384251dc; /* (pi) copy */
-  --muted: #5c5752; /* (pi) driftwood */
-  --link: #4b607c; /* (pi) tidal blue = rgb(75,96,124) */
+  --paper: #ebe7e4; /* (ref) */
+  --paper-deep: #dacbc2; /* (ref) */
+  --paper-raised: #f3f2f0; /* (ref) island surface */
+  --paper-cool: #eef1f3; /* (ref) terminal island body */
+  --ink: #252f3df5; /* (ref) = rgba(37,47,61,.96) */
+  --ink-soft: #384251dc; /* (ref) */
+  --muted: #5c5752; /* (ref) */
+  --link: #4b607c; /* (ref) = rgb(75,96,124) */
   --link-hover: var(--ink);
   --accent: var(--link);
-  --accent-warm: #844f3b; /* (pi) terracotta; sparing, never for large areas */
-  --line: #8b847d59; /* (pi) */
+  --accent-warm: #844f3b; /* (ref) sparing; never for large areas */
+  --line: #8b847d59; /* (ref) */
   --line-strong: #5c57528c;
-  --selection: #4b607c24; /* (pi) */
-  --focus-ring: #4b607c80; /* (pi) */
+  --selection: #4b607c24; /* (ref) */
+  --focus-ring: #4b607c80; /* (ref) */
 
-  /* Paper texture: a faint 20px grid and a light grain, as SVG (no CSS gradients). */
-  --paper-texture:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M20 0H0V20' fill='none' stroke='%23252f3d' stroke-opacity='.045'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0,0,0,0,.36,0,0,0,0,.34,0,0,0,0,.32,0,0,0,.05,0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* Technical paper (paper.css): engineering grid, cross marks, soft vignette. */
+  --grid-cell: 20px; /* major cell */
+  --grid-minor-step: calc(var(--grid-cell) / 5);
+  --grid-cross-arm: 3px; /* cross mark length, centred on each major intersection */
+  --grid-minor: #252f3d08; /* (ref) */
+  --grid-major: #252f3d12; /* (ref) */
+  --grid-cross: #252f3d1d; /* (ref) */
+  --paper-vignette: #ebe7e426; /* (ref) */
+  --paper-fade: #ebe7e4d9; /* the grid fades out towards the bottom of the screen */
+  --paper-top-wash: #ebe7e48c; /* lightens the grid across the top half of the screen */
 
   /* Type: one old-style serif (body and headings, italic for display) and a mono for UI. */
   --font-serif-brygada: "Brygada 1918", Georgia, "Times New Roman", serif;
@@ -38,21 +47,20 @@
   --font-display: var(--font-serif);
   --font-ui: var(--font-mono);
 
-  --root-size: 18px; /* (pi) */
-  --text-label: calc(11rem / 18); /* (pi) 11px mono labels */
-  --text-small: 0.84rem; /* (pi) mono detail */
-  --text-detail: 0.95rem; /* (pi) */
-  --text-body: 1.02rem; /* (pi) mobile body, ~18px */
-  --text-body-wide: 1.22rem; /* (pi) desktop body, ~22px */
+  --root-size: 18px; /* (ref) */
+  --text-label: calc(11rem / 18); /* (ref) 11px mono labels */
+  --text-small: 0.84rem; /* (ref) mono detail, terminal text */
+  --text-detail: 0.95rem; /* (ref) */
+  --text-body: 1rem; /* 18px at every width */
   --text-h3: 1.22rem;
   --text-h2: 1.5rem;
-  --text-h1: 1.875rem; /* modest: never a hero size */
+  --text-h1: 1.875rem; /* about 1.9x body: modest, never a hero size */
 
-  --weight-body: 450; /* (pi) */
+  --weight-body: 450; /* (ref) */
   --weight-strong: 600;
-  --leading-body: 1.55; /* (pi) */
+  --leading-body: 1.55; /* (ref) */
   --leading-tight: 1.2;
-  --tracking-label: 0.12em; /* (pi) */
+  --tracking-label: 0.12em; /* (ref) */
 
   /* Spacing: a 4-step-per-rem scale on an 18px root. */
   --space-1: 0.25rem;
@@ -63,7 +71,7 @@
   --space-6: 2rem;
   --space-7: 3rem;
   --space-8: 4rem;
-  --measure: 36rem; /* text column, about 65 characters at body size */
+  --measure: 34rem; /* text column, about 70 characters at body size */
   --gutter: var(--space-4);
 
   /* Borders and radii: hairlines, nearly square corners. */
@@ -77,15 +85,19 @@
   /* No drop shadows. The only shadow is the focus ring. */
   --shadow-focus: 0 0 0 2px var(--focus-ring);
 
-  /* Motion: short colour fades only; none under prefers-reduced-motion. */
+  /* Motion: CSS only, played once on load (the cursor blinks); none under reduced motion. */
   --duration-fast: 150ms;
-  --duration: 400ms; /* (pi) */
+  --duration: 400ms; /* (ref) */
+  --duration-enter: 700ms;
+  --stagger: 90ms;
+  --rise: 6px;
+  --blink: 1.1s;
   --ease: ease;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @media (min-width: 48rem) {
   :root {
-    --text-body: var(--text-body-wide);
     --gutter: var(--space-6);
   }
 }

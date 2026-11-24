@@ -1,5 +1,7 @@
 {
-  "plugins": ["stylelint-declaration-strict-value"],
+  "plugins": [
+    "stylelint-declaration-strict-value"
+  ],
   "rules": {
     "scale-unlimited/declaration-strict-value": [
       [
@@ -46,14 +48,31 @@
   },
   "overrides": [
     {
-      "files": ["**/*.astro"],
+      "files": [
+        "**/*.astro"
+      ],
       "customSyntax": "postcss-html"
     },
     {
-      "files": ["src/styles/tokens.css", "src/styles/fonts.css"],
+      "files": [
+        "src/styles/tokens.css",
+        "src/styles/fonts.css"
+      ],
       "rules": {
         "scale-unlimited/declaration-strict-value": null,
         "color-no-hex": null
+      }
+    },
+    {
+      "files": [
+        "src/styles/paper.css"
+      ],
+      "rules": {
+        "function-disallowed-list": [
+          "repeating-linear-gradient",
+          "repeating-radial-gradient",
+          "repeating-conic-gradient"
+        ]
       }
     }
   ]

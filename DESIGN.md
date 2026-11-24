@@ -4,21 +4,21 @@ The design system for this site. It is the only authority on type, colour, spaci
 
 ## References
 
-- **Primary: pi.dev**, in its light theme. The model for type, colour, texture and density: an old-style serif at a generous reading size, slate ink on warm paper, small mono labels, hairline rules and nothing loud.
+- **Primary: pi.dev**, in its light theme. The model for type, colour, technical-paper texture, islands, motion and density. It sets an old-style serif in slate ink on warm engineering-grid paper, with small mono labels, hairline-bordered panels ("islands"), gentle entrance motion, and nothing loud.
 - **Secondary: lefos.com.** Visual reference only (no values are taken from it): italic serif display headings and calm, compact text blocks.
 
 Reference screenshots are captured at runtime into the uncommitted `.cache/reference/` by `scripts/reference-screens.ts` (at most once a day; the cached copy is used, with a note, when the site is unreachable). No third-party screenshot, logo, name or mark is ever committed or shown on the built site.
 
 ## Character
 
-Compact, tidy and quiet. Text blocks are neat and justified-feeling, headers are modest, and the page reads like a well-set document, not a landing page. The opposite of "big headers, fonts, pictures and boxes".
+Compact, tidy and quiet, on technical paper. Text blocks are neat and justified-feeling, headers are modest, and the page reads like a well-set engineering notebook, not a landing page. The opposite of "big headers, fonts, pictures and boxes".
 
 ## Type
 
-- **Body and headings: one old-style serif** with the feel of the Plantin family (robust, slightly condensed, large x-height). pi.dev sets its body in Plantin at about 22px; this site uses a free (OFL) serif chosen from a side-by-side comparison (see "Fonts"). Body weight is a touch above regular (450).
-- **Display headings: the same serif, in italic**, as on lefos.com. `h1` and `h2` are italic; `h3` is upright semibold. Headings stay small: `h1` is 1.875rem (about 34px).
+- **Body and headings: one old-style serif** with the feel of the Plantin family (robust, slightly condensed, large x-height). This site uses a free (OFL) serif chosen from a side-by-side comparison (see "Fonts"). Body weight is a touch above regular (450).
+- **Display headings: the same serif, in italic**, as on lefos.com. `h1` and `h2` are italic; `h3` is upright semibold. Headings stay modest: `h1` is 1.875rem (about 34px), about 1.9 times the body size.
 - **UI, labels, metadata and terminal-style boxes: Departure Mono**, falling back to Commit Mono, then the system mono. Labels are 11px, uppercase, tracked at 0.12em.
-- Root size 18px. Body 1.02rem (about 18px) on narrow screens and 1.22rem (about 22px) from 48rem up. Line height 1.55. Paragraphs are justified with hyphenation; `text-wrap: pretty` on body, `balance` on headings.
+- Root size 18px. **Body 1rem (18px) at every width**: normal paragraph text stays a comfortable reading size, not a display size. Line height 1.55. Paragraphs are justified with hyphenation from 48rem up, and ragged-right on narrow screens (justifying a short line opens rivers). `text-wrap: pretty` on body text, `balance` on headings.
 
 ## Colour
 
@@ -28,7 +28,8 @@ Light only for now. Warm paper, slate ink, one restrained accent.
 |---|---|---|
 | `--paper` | `#ebe7e4` | page background |
 | `--paper-deep` | `#dacbc2` | deeper paper, rare fills |
-| `--paper-raised` | `#f3f2f0` | the rare raised surface |
+| `--paper-raised` | `#f3f2f0` | island surface |
+| `--paper-cool` | `#eef1f3` | terminal island body |
 | `--ink` | `rgba(37,47,61,.96)` (`#252f3df5`) | body text and headings: slate, never black |
 | `--ink-soft` | `#384251dc` | secondary copy |
 | `--muted` | `#5c5752` | labels, metadata |
@@ -37,7 +38,19 @@ Light only for now. Warm paper, slate ink, one restrained accent.
 | `--line` / `--line-strong` | `#8b847d59` / `#5c57528c` | hairlines, underlines |
 | `--selection`, `--focus-ring` | `#4b607c24`, `#4b607c80` | selection and focus |
 
-**Paper texture:** a faint 20px grid and a light grain, drawn as inline SVG (`--paper-texture`), as on pi.dev. Never a CSS gradient.
+## Paper
+
+The page sits on technical paper: an engineering grid on warm paper, fixed behind the content (`src/styles/paper.css`).
+
+- **`body::before`** draws the grid:
+  - a 20px major cell (`--grid-cell`) in `--grid-major` (`#252f3d12`);
+  - minor 1px lines every cell/5 (4px) in `--grid-minor` (`#252f3d08`);
+  - a small cross mark at each major intersection in `--grid-cross` (`#252f3d1d`).
+- **`body::after`** is the vignette. It has three parts:
+  - a paper wash from the top (`--paper-top-wash`, `#ebe7e48c`) that makes the grid noticeably lighter across the top half of the screen, reaching full strength by mid-screen;
+  - a soft wash at the edges (`--paper-vignette`, `#ebe7e426`);
+  - a fade (`--paper-fade`) that lets the grid fade out towards the bottom of the screen.
+- Both layers are drawn with CSS gradients. These are *structural* gradients (lines, marks, a fade), and `paper.css` is the only file stylelint allows them in. Decorative colour gradients are on the never list.
 
 Contrast: `--ink`, `--muted` and `--link` all meet WCAG AA for body text on `--paper` (checked by axe on every built page).
 
@@ -46,28 +59,49 @@ Contrast: `--ink`, `--muted` and `--link` all meet WCAG AA for body text on `--p
 - One narrow column, `--measure` 36rem (about 65 characters), centred, with `--gutter` side padding (1rem, 2rem from 48rem up).
 - Compact vertical rhythm from the spacing scale; sections separated by a hairline and `--space-7`, not by boxes.
 - Modest headers: a mono label, then a small italic heading. No hero.
-- Lists are plain; boxes are rare, mono, hairline-bordered, unfilled.
+- Lists are plain.
+
+## Islands
+
+Islands are panels that sit on the grid, like the terminal and preview panels on the reference:
+
+- a raised paper surface (`--paper-raised`), a hairline border (`--border`), a 4px radius (`--radius-2`), and **no drop shadow**;
+- an optional bar at the top with a mono label, separated by a hairline;
+- a terminal island (`.terminal`) has a cool panel body (`--paper-cool`), mono text and a blinking block cursor.
+
+Use them for small, self-contained things (a terminal snippet, a set of facts), one or two to a page, never as a grid of cards.
+
+## Motion
+
+CSS only: no client JavaScript on any page (CV pages forbid it, and the rest of the site follows). Every animation is declared inside `@media (prefers-reduced-motion: no-preference)`, so with reduced motion nothing moves.
+
+- **Rise and fade:** `.reveal` lines (opening label, paragraph, metadata) fade in and rise by `--rise` (6px), staggered by `--stagger` (90ms) through `.d1`-`.d6`.
+- **Focus-in:** the `h1` comes into focus from a slight blur.
+- **Panel enter:** islands fade in and settle (a small rise and scale).
+- **Cursor:** the terminal cursor blinks (`--blink` 1.1s, stepped).
+- Durations: `--duration-enter` 700ms with `--ease-out`; `--duration-fast` 150ms for colour fades on links.
 
 ## Tokens
 
-All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unlimited/declaration-strict-value` for colour, font family, font size, margin, padding, gap and box-shadow; `color-no-hex`; no gradient functions).
+All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unlimited/declaration-strict-value` for colour, font family, font size, margin, padding, gap and box-shadow; `color-no-hex`; gradient functions only in `paper.css`). See ADR 0007.
 
-- **Type scale:** `--text-label` 11/18rem, `--text-small` 0.84rem, `--text-detail` 0.95rem, `--text-body` 1.02rem (1.22rem wide), `--text-h3` 1.22rem, `--text-h2` 1.5rem, `--text-h1` 1.875rem. Weights `--weight-body` 450, `--weight-strong` 600. Leading `--leading-body` 1.55, `--leading-tight` 1.2. Tracking `--tracking-label` 0.12em.
+- **Type scale:** `--text-label` 11/18rem, `--text-small` 0.84rem, `--text-detail` 0.95rem, `--text-body` 1rem, `--text-h3` 1.22rem, `--text-h2` 1.5rem, `--text-h1` 1.875rem. Weights `--weight-body` 450, `--weight-strong` 600. Leading `--leading-body` 1.55, `--leading-tight` 1.2. Tracking `--tracking-label` 0.12em.
 - **Families:** `--font-serif` (the pick), `--font-serif-brygada`, `--font-serif-newsreader`, `--font-serif-source` (the candidates), `--font-mono`; roles `--font-body`, `--font-display`, `--font-ui`.
-- **Spacing scale:** `--space-1` 0.25rem, `--space-2` 0.5rem, `--space-3` 0.75rem, `--space-4` 1rem, `--space-5` 1.5rem, `--space-6` 2rem, `--space-7` 3rem, `--space-8` 4rem; `--measure` 36rem; `--gutter`.
-- **Colours:** the table above, plus `--paper-texture`.
+- **Spacing scale:** `--space-1` 0.25rem, `--space-2` 0.5rem, `--space-3` 0.75rem, `--space-4` 1rem, `--space-5` 1.5rem, `--space-6` 2rem, `--space-7` 3rem, `--space-8` 4rem; `--measure` 34rem; `--gutter`.
+- **Colours:** the table above. **Paper:** `--grid-cell` 20px, `--grid-minor-step`, `--grid-cross-arm`, `--grid-minor`, `--grid-major`, `--grid-cross`, `--paper-vignette`, `--paper-top-wash` and `--paper-fade`.
 - **Borders:** `--border-width` 1px, `--border` (hairline in `--line`), `--border-strong`.
 - **Radii:** `--radius-0` 0, `--radius-1` 2px, `--radius-2` 4px. Nothing rounder.
-- **Shadow:** `--shadow-focus` only (the focus ring). No drop shadows.
-- **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--ease` ease; colour fades only, and zero under `prefers-reduced-motion`.
+- **Shadow:** `--shadow-focus` only (the focus ring). **No drop shadows**: islands and panels are separated by hairline borders, never by shadows. For the design critic, a single faint shadow on one panel is a deduction (10 points). Heavy shadows, shadows on several panels, or shadowed cards are on the never list.
+- **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--duration-enter` 700ms, `--stagger` 90ms, `--rise` 6px, `--blink` 1.1s, `--ease`, `--ease-out`. Nothing animates under `prefers-reduced-motion: reduce`.
 
 ## Never
 
 - Tailwind defaults, or any CSS framework or component kit (Tailwind, Bootstrap, Bulma, shadcn, daisyUI; checked by `scripts/check-deps.ts`).
-- Gradients (stylelint rejects every gradient function).
+- Decorative colour gradients: gradient heroes, buttons, text or fills. Structural gradients that draw the paper grid and vignette (`paper.css`) are the only exception, and stylelint allows gradient functions nowhere else.
 - An oversized hero, or a giant centred headline.
 - Emoji icons, and stock icon sets.
-- Generic card grids, and drop-shadow-heavy cards.
+- Generic card grids, and drop shadows on cards or panels (see "Shadow").
+- Client-side JavaScript, including for motion.
 - Purple or indigo accents.
 - Pure black text or a pure white background.
 - Third-party names, logos or marks on the built site.
@@ -88,6 +122,6 @@ Serif candidates, compared on `/_fonts/` (the same CV-like block in each, unlink
 
 Swapping fonts is a token change only: point `--font-serif` at another candidate token (or a bought Plantin) in `tokens.css`.
 
-## Attribution
+## Credits
 
-Colour values, type sizes, weights, leading, label tracking and the motion duration marked `(pi)` in `tokens.css` are taken from pi-website (https://github.com/earendil-works/pi-website), the project behind pi.dev, which is under the MIT licence; see `NOTICE`. They were read from the stylesheet pi.dev serves (its light theme), which is newer than the CSS in that repository. Only values are reused, no code structure. The paper texture is this site's own SVG, not pi.dev's CSS.
+pi.dev is the visual reference for this design. The colour and size values marked `(ref)` in `tokens.css` were observed on pi.dev's public stylesheet (light theme). They include the paper, ink, link and grid colours, the 18px root, the label size and tracking, the body weight and leading, and one motion duration. That stylesheet is not published under a licence, so nothing from it is copied as code. The values are reused only as plain colour and size facts. Every rule, technique and file in `src/styles/` is this site's own, including the grid (drawn with conic and linear gradients of our own), the islands and the motion. No third-party name, logo or mark appears on the built site. See `NOTICE`.

@@ -3,12 +3,31 @@ import Base from '../layouts/Base.astro';
 ---
 <Base title="Josh Quinn" description="Personal site. Placeholder while it is being built.">
   <main class="page">
-    <span class="label">Personal site</span>
+    <span class="label reveal">Personal site</span>
     <h1>Josh Quinn</h1>
-    <p>
+    <p class="reveal d2">
       Placeholder. This site is under construction: a short CV, notes and the odd project will live
       here. For now, this page only shows the type, colour and spacing the rest of the site will use.
     </p>
-    <p class="meta">Status: under construction</p>
+    <p class="meta reveal d3">Status: under construction</p>
+
+    <section class="island terminal d4" aria-label="Terminal, placeholder">
+      <div class="island-bar"><span class="label">session · placeholder</span></div>
+      <pre class="island-body"><span class="prompt">$</span> cat now.txt
+Building this site: a short CV and some notes, soon.
+<span class="prompt">$</span> <span class="cursor" aria-hidden="true"></span></pre>
+    </section>
+
+    <section class="island d5" aria-labelledby="colophon">
+      <div class="island-bar"><h2 id="colophon" class="label">Colophon</h2></div>
+      <dl class="facts island-body">
+        <dt>Type</dt>
+        <dd>Newsreader, Departure Mono</dd>
+        <dt>Paper</dt>
+        <dd>Drawn in CSS</dd>
+        <dt>Scripts</dt>
+        <dd>None</dd>
+      </dl>
+    </section>
   </main>
 </Base>

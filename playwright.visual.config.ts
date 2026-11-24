@@ -14,7 +14,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',
-  use: { baseURL: `http://127.0.0.1:${port}` },
+  // Pages at rest: with reduced motion nothing animates, so screenshots are stable.
+  use: { baseURL: `http://127.0.0.1:${port}`, reducedMotion: 'reduce' },
   expect: { toHaveScreenshot: { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 } },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
