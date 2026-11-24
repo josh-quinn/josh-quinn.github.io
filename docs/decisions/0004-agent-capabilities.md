@@ -117,3 +117,11 @@ What is left: the branch history itself. Someone who rewrites the branch so that
 ## Privacy-audit verdict
 
 Not applicable: no tool is adopted by this ADR. The agent CLIs are the services this toolkit calls. The probe runs used `--disable-client-telemetry` for Copilot; no Copilot hook runs other than the probe hooks were executed. The Task 5 live checks also used `--disable-client-telemetry`; the only hook they ran was the repo's own guard.
+
+## Addendum (Task 9): existing capture tools
+
+Looked for existing tools that summarise Claude Code or Copilot sessions into notes (web search, hook examples). Found Claude-only tools such as clerk, cc-worklog, sessionscribe and memsearch's hook. None has a Copilot route, each is third-party code that would need a `jq-privacy-audit` before it could read transcripts, and the job is small. Decision: keep a thin script, `tools/capture/capture.ts`.
+
+- Claude: `PreCompact` and `SessionEnd` in `.claude/settings.json`, reading `transcript_path`.
+- Copilot: `sessionEnd` and `preCompact` in `.github/hooks/capture.json`. `sessionEnd` carries only `sessionId`, so the script reads `~/.copilot/session-state/<sessionId>/events.jsonl`. In `-p` mode the hooks load only with `--trust-folder`.
+- The hook returns at once; a detached worker calls the backend (`claude -p` by default) with `JQ_CAPTURE_ACTIVE=1` as the recursion guard. The transcript goes only to that CLI, and the entry is redacted before it is written.

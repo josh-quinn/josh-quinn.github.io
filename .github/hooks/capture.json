@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "npx tsx tools/capture/capture.ts --event SessionEnd --agent copilot",
+        "powershell": "npx tsx tools/capture/capture.ts --event SessionEnd --agent copilot",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ],
+    "preCompact": [
+      {
+        "type": "command",
+        "bash": "npx tsx tools/capture/capture.ts --event PreCompact --agent copilot",
+        "powershell": "npx tsx tools/capture/capture.ts --event PreCompact --agent copilot",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}
