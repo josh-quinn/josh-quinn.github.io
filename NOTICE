@@ -1,11 +1,14 @@
 Third-party credits
 
-Design values (CSS custom properties, spacing, type scale and similar) in this
-site may be derived from pi-website, https://github.com/earendil-works/pi-website,
-which is licensed under the MIT licence. Those values may be reused under MIT.
+1. Visual reference: pi.dev.
 
-Copyright (c) the pi-website authors
+   The site's look follows pi.dev's light theme, its primary visual reference. Some colour
+   and size values in src/styles/tokens.css (marked "(ref)") match values observed on
+   pi.dev's public stylesheet. That stylesheet is not published under a licence, and none
+   of its code is used here: the values are reused only as plain colour and size facts,
+   and all CSS in this repository is this site's own. No logo, name or mark of pi.dev
+   appears on the built site. See DESIGN.md, "Credits".
 
-TODO: replace the line above with the exact copyright line from the pi-website
-LICENSE file, and reproduce the full MIT licence text here, at the point where
-values are actually copied.
+2. Fonts in public/fonts/, each under the SIL Open Font License 1.1. The licence and
+   copyright notice for each family are in its folder (public/fonts/<family>/OFL.txt):
+   Brygada 1918, Newsreader, Source Serif 4, Departure Mono and Commit Mono.

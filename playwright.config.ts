@@ -5,6 +5,8 @@ const port = 4321;
 export default defineConfig({
   testDir: 'tests',
   testMatch: '**/*.spec.ts',
+  // Visual baselines are Linux-rendered and run in Docker: npm run test:visual.
+  testIgnore: ['visual/**'],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',

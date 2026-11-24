@@ -42,6 +42,45 @@ modes:
         kind: deterministic
         run: lychee --offline --no-progress --root-dir "$PWD/dist" dist
 
-  # Filled in by Task 6 (AI design checks). With no checks, `gate design` fails.
+      # DESIGN.md: colour, font and spacing only from tokens; no gradients.
+      - name: stylelint
+        kind: deterministic
+        run: npm run lint:css
+
+      # DESIGN.md never list: no CSS framework or component kit.
+      - name: deps
+        kind: deterministic
+        run: npm run deps
+
+      # Visual baselines (tests/visual/__screenshots__/), in the Linux Playwright image (needs Docker).
+      - name: visual
+        kind: deterministic
+        run: sh scripts/visual.sh
+        timeoutMs: 900000
+
+      # AI checks (ADR 0003, models per docs/decisions/0006-ai-eval-models.md). Each prints one
+      # {score, passes, issues, tokens} object; backend and model come from ai.<check name> in
+      # ~/.config/jq-tools/gate/config.yaml. Local only; CI holds no AI tokens.
+      - name: design-critic
+        kind: ai
+        when: ['src/**/*.{astro,css}', 'DESIGN.md']
+        run: npm run build --silent >&2 && npx tsx tools/gate/ai-eval.ts design-critic --page index
+        timeoutMs: 900000
+
+      - name: auditor
+        kind: ai
+        run: npx tsx tools/gate/ai-eval.ts auditor
+        timeoutMs: 900000
+
+  # `npm run gate -- design <page>`: score one page (index = home, fonts = /_fonts/) against
+  # DESIGN.md beside fresh reference screenshots (.cache/reference/, at most daily).
   design:
-    checks: []
+    checks:
+      - name: refs
+        kind: deterministic
+        run: npx tsx scripts/reference-screens.ts
+
+      - name: design-critic
+        kind: ai
+        run: npm run build --silent >&2 && npx tsx tools/gate/ai-eval.ts design-critic
+        timeoutMs: 900000

@@ -1,0 +1,82 @@
+---
+/*
+ * Font comparison (DESIGN.md "Fonts"). Routed at /_fonts/ by astro.config.mjs and linked
+ * from nowhere. Each candidate renders the same CV-like block; content is fictional.
+ * scripts/font-compare.ts screenshots each block beside the local reference screenshots.
+ */
+import Base from '../layouts/Base.astro';
+
+const candidates = [
+  { id: 'brygada', name: 'Brygada 1918' },
+  { id: 'newsreader', name: 'Newsreader' },
+  { id: 'source', name: 'Source Serif 4' },
+];
+---
+<Base title="Font comparison" description="Serif candidates for the site, side by side.">
+  <main class="page compare">
+    <span class="label">Font comparison</span>
+    <h1>Serif candidates</h1>
+    <p>
+      The same short CV block in each free serif candidate. Only the body font changes; the mono
+      labels, colours and spacing are the same tokens throughout.
+    </p>
+    {
+      candidates.map((c, i) => (
+        <section class:list={['candidate', `candidate-${c.id}`]} data-font={c.id} aria-label={`Candidate ${i + 1}: ${c.name}`}>
+          <span class="label">
+            Candidate {i + 1} · {c.name}
+          </span>
+          <h2>Robin Placeholder</h2>
+          <p class="meta">Software engineer · Ireland</p>
+          <p>
+            Engineer who likes small, sturdy systems and the people who run them. Writes careful code,
+            plain documentation and tests that say what they mean. Happiest where a quiet tool saves
+            a team an hour every day, and where nobody has to think about it again.
+          </p>
+          <h3>Experience</h3>
+          <p>
+            <strong>Senior engineer, Example Freight.</strong> Led a team of four on route planning;
+            cut the weekly planning run from <em>three hours</em> to twenty minutes, and moved
+            reporting off spreadsheets onto a small internal service.
+          </p>
+          <ul>
+            <li>Mentored two new engineers through their first year.</li>
+            <li>
+              Wrote the on-call guide that the team <a href="/">still uses</a>.
+            </li>
+          </ul>
+          <p class="meta">Figures 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 · Ampersand &amp; · Quotes “a” ‘b’ — dash</p>
+        </section>
+      ))
+    }
+  </main>
+</Base>
+
+<style>
+  .candidate {
+    margin-top: var(--space-7);
+    padding-top: var(--space-5);
+    border-top: var(--border);
+  }
+
+  .candidate-brygada {
+    --font-body: var(--font-serif-brygada);
+    --font-display: var(--font-serif-brygada);
+
+    font-family: var(--font-body);
+  }
+
+  .candidate-newsreader {
+    --font-body: var(--font-serif-newsreader);
+    --font-display: var(--font-serif-newsreader);
+
+    font-family: var(--font-body);
+  }
+
+  .candidate-source {
+    --font-body: var(--font-serif-source);
+    --font-display: var(--font-serif-source);
+
+    font-family: var(--font-body);
+  }
+</style>

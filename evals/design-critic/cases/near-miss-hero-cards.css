@@ -1,0 +1,21 @@
+/* Near-miss case: the real home page with ONE defect. An oversized headline and a grid of
+   drop-shadowed cards. Expected: fail. Injected by tools/gate/ai-eval.ts. */
+h1 {
+  font-size: 64px;
+  line-height: 1.05;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.card {
+  padding: 20px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18), 0 4px 8px rgba(15, 23, 42, 0.08);
+}
+.card h3 {
+  margin: 0 0 6px;
+}

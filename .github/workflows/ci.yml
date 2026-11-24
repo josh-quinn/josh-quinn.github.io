@@ -49,6 +49,55 @@ jobs:
           echo "$RUNNER_TEMP/gitleaks-bin" >> "$GITHUB_PATH"
       - run: npm run test:unit
 
+  # DESIGN.md: colour, font and spacing only from tokens; no gradients.
+  stylelint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:css
+
+  # DESIGN.md never list: no CSS framework or component kit in the dependencies.
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run deps
+
+  # Visual baselines (tests/visual/__screenshots__/) were made in this image; keep its tag
+  # equal to the installed @playwright/test version (scripts/visual.sh uses the same image).
+  visual:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Image matches @playwright/test
+        run: test "$(node -p "require('@playwright/test/package.json').version")" = 1.65.1
+      - run: npm run build
+      - run: npx playwright test -c playwright.visual.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-diffs
+          path: test-results/
+          if-no-files-found: ignore
+
   privacy:
     runs-on: ubuntu-latest
     steps:

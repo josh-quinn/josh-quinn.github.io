@@ -1,0 +1,2 @@
+/* Control case: the real home page with NO defect (nothing is injected). Expected: pass.
+   The near-miss-* cases are this page plus one planted defect each. */

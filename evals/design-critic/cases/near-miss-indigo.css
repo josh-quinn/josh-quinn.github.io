@@ -1,0 +1,20 @@
+/* Near-miss case: the real home page with ONE defect. Indigo and purple links and accents
+   instead of slate blue. Expected: fail. Injected by tools/gate/ai-eval.ts. */
+:root {
+  --link: #4f46e5;
+  --accent: #7c3aed;
+}
+a {
+  color: #4f46e5;
+  text-decoration-color: #a78bfa;
+}
+.label,
+.terminal .prompt {
+  color: #7c3aed;
+}
+.cursor {
+  background-color: #7c3aed;
+}
+.island {
+  border-color: #c4b5fd;
+}

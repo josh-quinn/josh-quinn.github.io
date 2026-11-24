@@ -1,0 +1,9 @@
+{
+  "name": "site-evals",
+  "private": true,
+  "type": "module",
+  "description": "AI eval harness (promptfoo), isolated from the site's dependencies. See README.md.",
+  "devDependencies": {
+    "promptfoo": "0.126.0"
+  }
+}

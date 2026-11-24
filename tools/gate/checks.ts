@@ -27,8 +27,11 @@ export type RunOptions = {
   taskId?: string;
   /** Default timeout for checks without their own `timeoutMs`. */
   timeoutMs?: number;
-  /** Default backend/model for AI checks without their own. */
-  ai?: { backend?: string; model?: string };
+  /**
+   * Default backend/model for AI checks without their own: `ai[<check name>]` first (for example
+   * `ai.design-critic`), then the flat `ai.backend` / `ai.model`.
+   */
+  ai?: { backend?: string; model?: string; [check: string]: unknown };
   /** Extra environment for every check. */
   env?: Record<string, string>;
 };
@@ -45,9 +48,14 @@ function isFiniteNumber(x: unknown): x is number {
   return typeof x === 'number' && Number.isFinite(x);
 }
 
+function isCount(x: unknown): x is number {
+  return Number.isSafeInteger(x) && (x as number) >= 0;
+}
+
 /**
  * Parse an AI check's stdout. Accepts exactly one JSON object
  * `{score, passes, issues, tokens?}` with optional surrounding whitespace; anything else is null.
+ * `score` is a number in 0-100; `tokens.input` and `tokens.output` are non-negative integers.
  */
 export function parseAiOutput(text: string): AiOutput | null {
   let x: unknown;
@@ -59,12 +67,12 @@ export function parseAiOutput(text: string): AiOutput | null {
   if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
   const o = x as Record<string, unknown>;
   if (!Object.keys(o).every((k) => AI_KEYS.has(k))) return null;
-  if (!isFiniteNumber(o.score) || typeof o.passes !== 'boolean') return null;
+  if (!isFiniteNumber(o.score) || o.score < 0 || o.score > 100 || typeof o.passes !== 'boolean') return null;
   if (!Array.isArray(o.issues) || !o.issues.every((i) => typeof i === 'string')) return null;
   const out: AiOutput = { score: o.score, passes: o.passes, issues: o.issues as string[] };
   if (o.tokens !== undefined) {
     const t = o.tokens as Record<string, unknown> | null;
-    if (!t || typeof t !== 'object' || !isFiniteNumber(t.input) || !isFiniteNumber(t.output)) return null;
+    if (!t || typeof t !== 'object' || !isCount(t.input) || !isCount(t.output)) return null;
     out.tokens = { input: t.input, output: t.output };
   }
   return out;
@@ -155,9 +163,14 @@ export async function runChecks(specs: CheckSpec[], changed: string[], opts: Run
   const results: CheckResult[] = [];
   for (const spec of specs) {
     const base = { name: spec.name, kind: spec.kind } as const;
+    const perCheck = (opts.ai?.[spec.name] ?? {}) as { backend?: unknown; model?: unknown };
+    const str = (x: unknown) => (typeof x === 'string' ? x : undefined);
     const ai =
       spec.kind === 'ai'
-        ? { backend: spec.backend ?? opts.ai?.backend ?? '', model: spec.model ?? opts.ai?.model ?? '' }
+        ? {
+            backend: spec.backend ?? str(perCheck.backend) ?? opts.ai?.backend ?? '',
+            model: spec.model ?? str(perCheck.model) ?? opts.ai?.model ?? '',
+          }
         : undefined;
     if (spec.when && spec.when.length > 0 && !matchesAny(spec.when, changed)) {
       results.push({ ...base, ...ai, status: 'skipped', evidence: '', durationMs: 0, detail: `no changed file matches ${spec.when.join(', ')}` });

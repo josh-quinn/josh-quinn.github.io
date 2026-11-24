@@ -1,0 +1,79 @@
+{
+  "plugins": [
+    "stylelint-declaration-strict-value"
+  ],
+  "rules": {
+    "scale-unlimited/declaration-strict-value": [
+      [
+        "/color$/",
+        "fill",
+        "stroke",
+        "font-family",
+        "font-size",
+        "/^margin/",
+        "/^padding/",
+        "gap",
+        "row-gap",
+        "column-gap",
+        "box-shadow"
+      ],
+      {
+        "expandShorthand": true,
+        "ignoreFunctions": false,
+        "ignoreValues": [
+          "/^0$/",
+          "auto",
+          "inherit",
+          "initial",
+          "unset",
+          "revert",
+          "none",
+          "transparent",
+          "/^currentcolor$/i",
+          "/^calc\\(.*var\\(--/"
+        ],
+        "message": "Use a token from src/styles/tokens.css (see DESIGN.md) for ${property}, not \"${value}\""
+      }
+    ],
+    "color-named": "never",
+    "color-no-hex": true,
+    "function-disallowed-list": [
+      "linear-gradient",
+      "radial-gradient",
+      "conic-gradient",
+      "repeating-linear-gradient",
+      "repeating-radial-gradient",
+      "repeating-conic-gradient"
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.astro"
+      ],
+      "customSyntax": "postcss-html"
+    },
+    {
+      "files": [
+        "src/styles/tokens.css",
+        "src/styles/fonts.css"
+      ],
+      "rules": {
+        "scale-unlimited/declaration-strict-value": null,
+        "color-no-hex": null
+      }
+    },
+    {
+      "files": [
+        "src/styles/paper.css"
+      ],
+      "rules": {
+        "function-disallowed-list": [
+          "repeating-linear-gradient",
+          "repeating-radial-gradient",
+          "repeating-conic-gradient"
+        ]
+      }
+    }
+  ]
+}
