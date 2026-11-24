@@ -1,0 +1,262 @@
+{
+  "meta": {
+    "placeholder": true,
+    "note": "Fictional sample content pending owner review"
+  },
+  "basics": {
+    "name": "Josh Quinn",
+    "label": "Sample Professional Title",
+    "summary": "Sample summary text. This whole page is placeholder content and describes a fictional persona.",
+    "location": {
+      "countryCode": "IE",
+      "region": "Ireland"
+    },
+    "profiles": [
+      {
+        "network": "GitHub",
+        "username": "josh-quinn",
+        "url": "https://github.com/josh-quinn"
+      },
+      {
+        "network": "LinkedIn",
+        "username": "example",
+        "url": "https://www.linkedin.com/in/example"
+      }
+    ]
+  },
+  "work": [
+    {
+      "name": "Example Organisation Alpha",
+      "position": "Sample Role A",
+      "summary": "Sample role description.",
+      "highlights": [
+        "Sample achievement one.",
+        "Sample achievement two."
+      ],
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "name": "Example Organisation Beta",
+      "position": "Sample Role B",
+      "summary": "Sample role description.",
+      "highlights": [
+        "Sample achievement three."
+      ],
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "name": "Sample Company Gamma",
+      "position": "Sample Role C",
+      "summary": "Sample role description.",
+      "highlights": [
+        "Sample achievement four."
+      ],
+      "views": [
+        "engineering",
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Company Delta",
+      "position": "Sample Role D",
+      "summary": "Sample role description.",
+      "views": [
+        "engineering",
+        "life"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Example University One",
+      "studyType": "Sample Degree",
+      "area": "Sample Subject A",
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "institution": "Sample College Two",
+      "studyType": "Sample Diploma",
+      "area": "Sample Subject B",
+      "views": [
+        "life"
+      ]
+    },
+    {
+      "institution": "Example Institute Three",
+      "studyType": "Sample Certificate",
+      "area": "Sample Subject C",
+      "views": [
+        "engineering",
+        "life"
+      ]
+    }
+  ],
+  "certificates": [
+    {
+      "name": "Sample Certificate A",
+      "issuer": "Example Certification Board",
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "name": "Sample Certificate B",
+      "issuer": "Example Certification Board",
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "name": "Sample Certificate C",
+      "issuer": "Sample Training Body",
+      "views": [
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Certificate D",
+      "issuer": "Sample Training Body",
+      "views": [
+        "life"
+      ]
+    }
+  ],
+  "awards": [
+    {
+      "title": "Sample Award One",
+      "awarder": "Example Awards Panel",
+      "summary": "A fictional award.",
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "title": "Sample Award Two",
+      "awarder": "Sample Community Club",
+      "summary": "A fictional trophy.",
+      "views": [
+        "life"
+      ]
+    },
+    {
+      "title": "Sample Award Three",
+      "awarder": "Example Awards Panel",
+      "views": [
+        "engineering"
+      ]
+    }
+  ],
+  "volunteer": [
+    {
+      "organization": "Example Shoreline Clean-up Group",
+      "position": "Sample Volunteer",
+      "summary": "Sample weekend beach clean-ups.",
+      "views": [
+        "ocean",
+        "life"
+      ]
+    },
+    {
+      "organization": "Sample Coastal Photography Club",
+      "position": "Sample Member",
+      "summary": "Sample monthly photo walks.",
+      "views": [
+        "ocean",
+        "life"
+      ]
+    },
+    {
+      "organization": "Example Community Code Club",
+      "position": "Sample Mentor",
+      "summary": "Sample evening sessions for beginners.",
+      "views": [
+        "engineering",
+        "ocean"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Sample Project One",
+      "description": "A fictional project used to show the layout.",
+      "views": [
+        "engineering"
+      ]
+    },
+    {
+      "name": "Sample Project Two",
+      "description": "A fictional project used to show the layout.",
+      "views": [
+        "engineering",
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Project Three",
+      "description": "A fictional photo journal of shoreline walks.",
+      "views": [
+        "ocean",
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Project Four",
+      "description": "A fictional hobby project.",
+      "views": [
+        "life"
+      ]
+    }
+  ],
+  "interests": [
+    {
+      "name": "Sample Hobby A",
+      "keywords": [
+        "Sample keyword"
+      ],
+      "views": [
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Hobby B",
+      "keywords": [
+        "Sample keyword"
+      ],
+      "views": [
+        "ocean",
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Hobby C",
+      "keywords": [
+        "Sample keyword"
+      ],
+      "views": [
+        "life"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "Sample skill group A",
+      "keywords": [
+        "Sample skill A",
+        "Sample skill B"
+      ]
+    },
+    {
+      "name": "Sample skill group B",
+      "keywords": [
+        "Sample skill C",
+        "Sample skill D"
+      ]
+    }
+  ]
+}

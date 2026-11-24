@@ -1,0 +1,186 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "resume.schema.json",
+  "title": "Resume (JSON Resume subset with views)",
+  "type": "object",
+  "required": ["basics"],
+  "additionalProperties": false,
+  "definitions": {
+    "views": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["engineering", "ocean", "life"] }
+    },
+    "highlights": { "type": "array", "items": { "type": "string" } },
+    "date": { "type": "string", "pattern": "^[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?$" }
+  },
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "placeholder": { "type": "boolean" },
+        "note": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "basics": {
+      "type": "object",
+      "required": ["name", "label", "location", "profiles"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "summary": { "type": "string" },
+        "phone": false,
+        "email": false,
+        "location": {
+          "type": "object",
+          "required": ["countryCode"],
+          "additionalProperties": false,
+          "properties": {
+            "countryCode": { "type": "string", "pattern": "^[A-Z]{2}$" },
+            "region": { "type": "string" }
+          }
+        },
+        "profiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["network", "username", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "network": { "type": "string" },
+              "username": { "type": "string" },
+              "url": { "type": "string", "pattern": "^https://" }
+            }
+          }
+        }
+      }
+    },
+    "work": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "position", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "position": { "type": "string", "minLength": 1 },
+          "location": { "type": "string" },
+          "summary": { "type": "string" },
+          "startDate": { "$ref": "#/definitions/date" },
+          "endDate": { "$ref": "#/definitions/date" },
+          "highlights": { "$ref": "#/definitions/highlights" },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "volunteer": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["organization", "position", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "organization": { "type": "string", "minLength": 1 },
+          "position": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string" },
+          "startDate": { "$ref": "#/definitions/date" },
+          "endDate": { "$ref": "#/definitions/date" },
+          "highlights": { "$ref": "#/definitions/highlights" },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["institution", "studyType", "area", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "institution": { "type": "string", "minLength": 1 },
+          "studyType": { "type": "string", "minLength": 1 },
+          "area": { "type": "string", "minLength": 1 },
+          "score": { "type": "string" },
+          "startDate": { "$ref": "#/definitions/date" },
+          "endDate": { "$ref": "#/definitions/date" },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "certificates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "issuer", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "issuer": { "type": "string", "minLength": 1 },
+          "date": { "$ref": "#/definitions/date" },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "awards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "awarder": { "type": "string" },
+          "summary": { "type": "string" },
+          "date": { "$ref": "#/definitions/date" },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "highlights": { "$ref": "#/definitions/highlights" },
+          "startDate": { "$ref": "#/definitions/date" },
+          "endDate": { "$ref": "#/definitions/date" },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "views"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "keywords": { "type": "array", "items": { "type": "string" } },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "keywords": { "type": "array", "items": { "type": "string" } },
+          "views": { "$ref": "#/definitions/views" }
+        }
+      }
+    }
+  }
+}
