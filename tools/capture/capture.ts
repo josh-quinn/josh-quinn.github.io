@@ -13,7 +13,7 @@
  */
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -133,10 +133,31 @@ const seenKey = (path: string, size: number) => createHash('sha256').update(`${p
 
 // ---- backend -----------------------------------------------------------------
 
+/**
+ * argv and stdin for the summariser. It reads an untrusted transcript, so it runs with no tools
+ * and no MCP servers: a prompt injection then has nothing to act with.
+ * claude takes the transcript on stdin; copilot ignores stdin in -p mode, so it goes in the prompt.
+ */
+export function backendInvocation(backend: string, prompt: string, transcript: string): { args: string[]; stdin: string } {
+  const name = basename(backend);
+  if (name === 'copilot') {
+    const deny = ['shell', 'write', 'read', 'url', 'memory'].map((t) => `--deny-tool=${t}`);
+    return {
+      args: ['-p', `${prompt}\n\n${transcript}`, '-s', '--disable-client-telemetry', '--disable-builtin-mcps', ...deny],
+      stdin: '',
+    };
+  }
+  if (name === 'claude') {
+    return {
+      args: ['-p', prompt, '--strict-mcp-config', '--disable-slash-commands', '--no-session-persistence', '--tools', ''],
+      stdin: transcript,
+    };
+  }
+  return { args: ['-p', prompt], stdin: transcript };
+}
+
 function runBackend(backend: string, prompt: string, transcript: string, timeoutS: number): Promise<string | null> {
-  // claude reads the transcript from stdin; other CLIs get everything in the prompt argument.
-  const viaStdin = basename(backend) !== 'copilot';
-  const args = basename(backend) === 'copilot' ? ['-p', `${prompt}\n\n${transcript}`, '-s'] : ['-p', prompt];
+  const { args, stdin } = backendInvocation(backend, prompt, transcript);
   return new Promise((resolve) => {
     const child = spawn(backend, args, {
       env: { ...process.env, JQ_CAPTURE_ACTIVE: '1' },
@@ -151,7 +172,7 @@ function runBackend(backend: string, prompt: string, transcript: string, timeout
       resolve(code === 0 && out.trim() ? out.trim() : null);
     });
     child.stdin.on('error', () => {});
-    child.stdin.end(viaStdin ? transcript : '');
+    child.stdin.end(stdin);
   });
 }
 
@@ -199,7 +220,9 @@ export async function capture(opts: CaptureOpts): Promise<CaptureResult> {
 
   const seen = readSeen();
   seen[key] = now.toISOString();
-  writeFileSync(seenFile(), JSON.stringify(seen, null, 2));
+  const tmpFile = `${seenFile()}.${process.pid}.tmp`;
+  writeFileSync(tmpFile, JSON.stringify(seen, null, 2));
+  renameSync(tmpFile, seenFile());
   return { status: 'written', file };
 }
 

@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { capture, redact } from '../../../tools/capture/capture';
+import { backendInvocation, capture, redact } from '../../../tools/capture/capture';
 
 const KEYS = ['TOOLS_CONFIG', 'JQ_TOOLS_CONFIG', 'XDG_STATE_HOME', 'JQ_CAPTURE_ACTIVE'] as const;
 let saved: Record<string, string | undefined>;
@@ -160,5 +160,22 @@ describe('hook wrapper', () => {
     expect(r.status).toBe(0);
     expect(Date.now() - t0).toBeLessThan(1000);
     expect(existsSync(journal)).toBe(false); // the backend is still running
+  });
+});
+
+describe('backend invocation runs the summariser with no tools', () => {
+  it('claude: no tools, no MCP, no slash commands; transcript on stdin, not argv', () => {
+    const { args, stdin } = backendInvocation('claude', 'PROMPT', 'TRANSCRIPT');
+    expect(args.slice(-2)).toEqual(['--tools', '']);
+    expect(args).toEqual(expect.arrayContaining(['--strict-mcp-config', '--disable-slash-commands']));
+    expect(args.join(' ')).not.toContain('TRANSCRIPT');
+    expect(stdin).toBe('TRANSCRIPT');
+  });
+
+  it('copilot: every tool class denied, built-in MCP servers off, no --allow-all', () => {
+    const { args } = backendInvocation('/usr/local/bin/copilot', 'PROMPT', 'TRANSCRIPT');
+    for (const t of ['shell', 'write', 'read', 'url', 'memory']) expect(args).toContain(`--deny-tool=${t}`);
+    expect(args).toContain('--disable-builtin-mcps');
+    expect(args.some((a) => a.startsWith('--allow'))).toBe(false);
   });
 });
