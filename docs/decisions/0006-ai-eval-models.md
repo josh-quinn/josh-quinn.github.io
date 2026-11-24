@@ -65,6 +65,33 @@ The first critic table proved little: two easy cases, and the placeholder home p
 - **Transient errors.** An earlier attempt at this run had 8 transient errors: the claude CLI exited with no tokens used, while the same call succeeded minutes later. `tools/gate/ai-agent.ts` now reports the CLI's own error text.
 - **Scope.** Only the picked pair was re-run; the other pairs' rows above predate the near misses.
 
+## Re-run after the pi.dev components (2026-11-24)
+
+The home page changed: it gained an announcement bar, a mono nav bar, a bracket link and a split with a sticky terminal island. `DESIGN.md` gained a "Components" section. The near misses inject their defect into the built home page, so the picked pair ran every case 3 times again (`npm run eval:critic -- --pairs claude:sonnet --repeat 3`). The `reference` case was then run 3 more times on its own (`ai-eval.ts case design-critic reference`).
+
+| Case | Expected | Result | Score spread |
+|---|---|---|---|
+| `home` (control, new home page) | pass | pass ×3 | 91-92 |
+| `reference` | pass | pass ×3, fail ×3 (6 runs) | 58-84 |
+| `generic-page` | fail | fail ×3 | 2-3 |
+| `near-miss-sans-white` | fail | fail ×3 | 58-62 |
+| `near-miss-indigo` | fail | fail ×3 | 55-55 |
+| `near-miss-hero-cards` | fail | fail ×3 | 52-55 |
+
+- **The 3-repeat run scored 17/18.** Tokens: 453,141 in and 11,614 out; 149 s of summed latency.
+- **The site's own pages:** 80 still separates them cleanly. The control scored 91-92 and every planted defect at most 62, a margin of 29 points. The near-miss and generic scores barely moved.
+- **The reference no longer passes reliably.** It used to score 84-86; across 6 runs it now scores 58, 70, 74, 82, 82 and 84.
+  - Every run deducts for the soft shadow on its install panel.
+  - Most runs now also see a lifted, shaded nav bar. `DESIGN.md` now describes the nav bar exactly: a flat row over a hairline.
+  - With two shadowed panels, the rubric's never-list wording ("shadows on several panels") applies. Three runs applied it, which caps the score at 60 or deducts enough to fail.
+  - By the letter of the rubric, those fails are defensible. The reference is the look's model, not a page that follows `DESIGN.md`'s stricter no-shadow rule.
+- **Threshold:** kept at 80. It still separates every page built for this site from every planted defect. It no longer places the reference on the pass side.
+- **Open decision (owner).** Either:
+  - re-label the `reference` case as an anchor that is reported but not required to pass; or
+  - relax the rubric so two faint panel shadows count as one deduction rather than "several panels".
+
+  Until one of these is chosen, a calibration run shows the reference as unstable. This does not affect the gate's verdicts on this site's pages.
+
 ## Decision
 
 | Eval | Backend | Model | Why |
