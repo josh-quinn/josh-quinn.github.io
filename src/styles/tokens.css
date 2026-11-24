@@ -55,7 +55,7 @@
   --text-h3: 1.22rem;
   --text-h2: 1.5rem;
   --text-h1: 1.875rem; /* about 1.9x body: modest, never a hero size */
-  --text-section: 2rem; /* italic section headings in a split's prose column */
+  --text-section: var(--text-h1); /* split section headings: never larger than the h1 */
 
   --weight-body: 450; /* (ref) */
   --weight-strong: 600;

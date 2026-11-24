@@ -99,7 +99,7 @@ CSS only: no client JavaScript on any page (CV pages forbid it, and the rest of 
 
 All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unlimited/declaration-strict-value` for colour, font family, font size, margin, padding, gap and box-shadow; `color-no-hex`; gradient functions only in `paper.css`). See ADR 0007.
 
-- **Type scale:** `--text-label` 11/18rem, `--text-small` 0.84rem, `--text-detail` 0.95rem, `--text-body` 1rem, `--text-h3` 1.22rem, `--text-h2` 1.5rem, `--text-h1` 1.875rem, `--text-section` 2rem (split section headings). Weights `--weight-body` 450, `--weight-strong` 600. Leading `--leading-body` 1.55, `--leading-tight` 1.2. Tracking `--tracking-label` 0.12em.
+- **Type scale:** `--text-label` 11/18rem, `--text-small` 0.84rem, `--text-detail` 0.95rem, `--text-body` 1rem, `--text-h3` 1.22rem, `--text-h2` 1.5rem, `--text-h1` 1.875rem, `--text-section` = `--text-h1` (split section headings; never larger than the page `h1`). Weights `--weight-body` 450, `--weight-strong` 600. Leading `--leading-body` 1.55, `--leading-tight` 1.2. Tracking `--tracking-label` 0.12em.
 - **Families:** `--font-serif` (the pick), `--font-serif-brygada`, `--font-serif-newsreader`, `--font-serif-source` (the candidates), `--font-mono`; roles `--font-body`, `--font-display`, `--font-ui`.
 - **Spacing scale:** `--space-1` 0.25rem, `--space-2` 0.5rem, `--space-3` 0.75rem, `--space-4` 1rem, `--space-5` 1.5rem, `--space-6` 2rem, `--space-7` 3rem, `--space-8` 4rem; `--measure` 34rem; `--measure-wide` 60rem; `--gutter`.
 - **Colours:** the table above. **Paper:** `--grid-cell` 20px, `--grid-minor-step`, `--grid-cross-arm`, `--grid-minor`, `--grid-major`, `--grid-cross`, `--paper-vignette`, `--paper-top-wash` and `--paper-fade`.

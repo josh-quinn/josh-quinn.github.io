@@ -152,6 +152,7 @@ test.describe('home page', () => {
         captions: !!media.querySelector('.island-bar .label') && !!media.querySelector('.island-foot .label'),
         h2: [...prose.querySelectorAll('h2')].map((h) => ({ style: getComputedStyle(h).fontStyle, size: parseFloat(getComputedStyle(h).fontSize) })),
         body: parseFloat(getComputedStyle(document.body).fontSize),
+        h1: parseFloat(getComputedStyle(document.querySelector('h1')!).fontSize),
       };
     });
     expect(s.columns).toBe(2);
@@ -162,6 +163,8 @@ test.describe('home page', () => {
     for (const h of s.h2) {
       expect(h.style).toBe('italic');
       expect(h.size / s.body).toBeGreaterThanOrEqual(1.75);
+      // The page h1 is never smaller than a section heading.
+      expect(h.size).toBeLessThanOrEqual(s.h1);
     }
   });
 
