@@ -68,6 +68,38 @@ describe('resume.json', () => {
     expect(p.some((x) => x.network === 'LinkedIn')).toBe(true);
   });
 
+  it('uses the placeholder LinkedIn handle while meta.placeholder is true', () => {
+    const li = resume.basics.profiles.find((x: { network: string }) => x.network === 'LinkedIn');
+    expect(resume.meta.placeholder).toBe(true);
+    expect(li.username).toBe('example');
+    expect(li.url).toBe('https://www.linkedin.com/in/example');
+  });
+
+  it('marks every organisation, institution, issuer and awarder as Example or Sample', () => {
+    const fields = ['name', 'organization', 'institution', 'issuer', 'awarder'];
+    const orgs: string[] = [];
+    for (const s of ['work', 'volunteer', 'education', 'certificates', 'awards']) {
+      for (const e of resume[s] ?? []) {
+        const f = s === 'work' ? 'name' : s === 'volunteer' ? 'organization' : s === 'education' ? 'institution' : s === 'certificates' ? 'issuer' : 'awarder';
+        if (e[f]) orgs.push(e[f]);
+      }
+    }
+    expect(fields.length).toBeGreaterThan(0);
+    expect(orgs.length).toBeGreaterThan(0);
+    for (const o of orgs) expect(o).toMatch(/\b(Example|Sample)\b/);
+  });
+
+  it('marks skills and interests as sample content', () => {
+    for (const s of [...(resume.skills ?? []), ...(resume.interests ?? [])]) {
+      expect(JSON.stringify(s)).toMatch(/\b(Example|Sample)\b/);
+      for (const k of s.keywords ?? []) expect(k).toMatch(/\b(Example|Sample)\b/);
+    }
+  });
+
+  it('does not echo ocean, diving, sailing, telecom or postgraduate-degree themes', () => {
+    expect(JSON.stringify(resume)).not.toMatch(/dive|diving|diver|sail|yacht|telecom|marine|\bMSc\b|skipper/i);
+  });
+
   it.each(VIEWS)('has at least 3 entries in the %s view', (view) => {
     expect(entries.filter((e) => e.views?.includes(view)).length).toBeGreaterThanOrEqual(3);
   });

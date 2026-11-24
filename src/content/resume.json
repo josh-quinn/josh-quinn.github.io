@@ -5,166 +5,261 @@
   },
   "basics": {
     "name": "Josh Quinn",
-    "label": "Software engineer, ocean enthusiast",
-    "summary": "Sample summary text. Builds dependable software, spends time on and under the water, and likes a good map. This is placeholder content.",
-    "location": { "countryCode": "IE", "region": "Ireland" },
+    "label": "Sample Professional Title",
+    "summary": "Sample summary text. This whole page is placeholder content and describes a fictional persona.",
+    "location": {
+      "countryCode": "IE",
+      "region": "Ireland"
+    },
     "profiles": [
-      { "network": "GitHub", "username": "josh-quinn", "url": "https://github.com/josh-quinn" },
-      { "network": "LinkedIn", "username": "example", "url": "https://www.linkedin.com/in/example" }
+      {
+        "network": "GitHub",
+        "username": "josh-quinn",
+        "url": "https://github.com/josh-quinn"
+      },
+      {
+        "network": "LinkedIn",
+        "username": "example",
+        "url": "https://www.linkedin.com/in/example"
+      }
     ]
   },
   "work": [
     {
-      "name": "Harbour Software Co.",
-      "position": "Senior Software Engineer",
-      "summary": "Sample role on a fictional platform team.",
+      "name": "Example Organisation Alpha",
+      "position": "Sample Role A",
+      "summary": "Sample role description.",
       "highlights": [
-        "Led a sample migration of a fictional billing service to a new platform.",
-        "Wrote sample review guidelines adopted by neighbouring teams."
+        "Sample achievement one.",
+        "Sample achievement two."
       ],
-      "views": ["engineering"]
+      "views": [
+        "engineering"
+      ]
     },
     {
-      "name": "Lighthouse Systems Ltd.",
-      "position": "Software Engineer",
-      "summary": "Sample role building data pipelines for a fictional telecom product.",
+      "name": "Example Organisation Beta",
+      "position": "Sample Role B",
+      "summary": "Sample role description.",
       "highlights": [
-        "Improved a sample pipeline so it handled ten times the sample load.",
-        "Mentored sample graduate engineers."
+        "Sample achievement three."
       ],
-      "views": ["engineering"]
+      "views": [
+        "engineering"
+      ]
     },
     {
-      "name": "Tidewater Analytics",
-      "position": "Data Engineer",
-      "summary": "Sample role processing fictional sensor data for coastal monitoring.",
-      "highlights": ["Built a sample dashboard for buoy readings."],
-      "views": ["engineering", "ocean"]
+      "name": "Sample Company Gamma",
+      "position": "Sample Role C",
+      "summary": "Sample role description.",
+      "highlights": [
+        "Sample achievement four."
+      ],
+      "views": [
+        "engineering",
+        "life"
+      ]
     },
     {
-      "name": "Driftwood Labs",
-      "position": "Mobile Developer",
-      "summary": "Sample role on a fictional app for citizen-science surveys.",
-      "highlights": ["Shipped a sample offline-first survey form."],
-      "views": ["engineering", "ocean", "life"]
+      "name": "Sample Company Delta",
+      "position": "Sample Role D",
+      "summary": "Sample role description.",
+      "views": [
+        "engineering",
+        "ocean",
+        "life"
+      ]
     }
   ],
   "education": [
     {
-      "institution": "Example Institute of Technology",
-      "studyType": "MSc",
-      "area": "Sample Computing Studies",
-      "views": ["engineering"]
+      "institution": "Example University One",
+      "studyType": "Sample Degree",
+      "area": "Sample Subject A",
+      "views": [
+        "engineering"
+      ]
     },
     {
-      "institution": "Fictional Coastal College",
-      "studyType": "Diploma",
-      "area": "Sample Marine Operations",
-      "views": ["ocean"]
+      "institution": "Sample College Two",
+      "studyType": "Sample Diploma",
+      "area": "Sample Subject B",
+      "views": [
+        "life"
+      ]
     },
     {
-      "institution": "Placeholder University",
-      "studyType": "BA",
-      "area": "Sample Creative Arts",
-      "views": ["engineering", "life"]
+      "institution": "Example Institute Three",
+      "studyType": "Sample Certificate",
+      "area": "Sample Subject C",
+      "views": [
+        "engineering",
+        "life"
+      ]
     }
   ],
   "certificates": [
     {
-      "name": "Sample Cloud Practitioner",
+      "name": "Sample Certificate A",
       "issuer": "Example Certification Board",
-      "views": ["engineering"]
+      "views": [
+        "engineering"
+      ]
     },
     {
-      "name": "Sample Secure Coding Associate",
+      "name": "Sample Certificate B",
       "issuer": "Example Certification Board",
-      "views": ["engineering"]
+      "views": [
+        "engineering"
+      ]
     },
     {
-      "name": "Sample Open Water Skipper",
-      "issuer": "North Atlantic Sailing School",
-      "views": ["ocean"]
+      "name": "Sample Certificate C",
+      "issuer": "Sample Training Body",
+      "views": [
+        "life"
+      ]
     },
     {
-      "name": "Sample Cold Water Diver",
-      "issuer": "Fictional Diving Federation",
-      "views": ["ocean"]
-    },
-    {
-      "name": "Sample First Aid at Sea",
-      "issuer": "North Atlantic Sailing School",
-      "views": ["ocean", "life"]
+      "name": "Sample Certificate D",
+      "issuer": "Sample Training Body",
+      "views": [
+        "ocean",
+        "life"
+      ]
     }
   ],
   "awards": [
     {
-      "title": "Sample Hackathon Finalist",
-      "awarder": "Example Hack Weekend",
-      "summary": "A fictional prototype award.",
-      "views": ["engineering", "ocean"]
+      "title": "Sample Award One",
+      "awarder": "Example Awards Panel",
+      "summary": "A fictional award.",
+      "views": [
+        "engineering",
+        "ocean"
+      ]
     },
     {
-      "title": "Sample Community Cup",
-      "awarder": "Placeholder Athletic Club",
-      "summary": "A fictional team trophy.",
-      "views": ["life"]
+      "title": "Sample Award Two",
+      "awarder": "Sample Community Club",
+      "summary": "A fictional trophy.",
+      "views": [
+        "life"
+      ]
     },
     {
-      "title": "Sample Engineering Excellence Mention",
-      "awarder": "Harbour Software Co.",
-      "views": ["engineering"]
+      "title": "Sample Award Three",
+      "awarder": "Example Awards Panel",
+      "views": [
+        "engineering"
+      ]
     }
   ],
   "volunteer": [
     {
-      "organization": "Example Beach Cleanup Group",
-      "position": "Volunteer Coordinator",
-      "summary": "Sample weekend shoreline clean-ups.",
-      "views": ["ocean", "life"]
+      "organization": "Example Shoreline Clean-up Group",
+      "position": "Sample Volunteer",
+      "summary": "Sample weekend beach clean-ups.",
+      "views": [
+        "ocean",
+        "life"
+      ]
     },
     {
-      "organization": "Placeholder Code Club",
-      "position": "Mentor",
-      "summary": "Sample evening coding sessions for beginners.",
-      "views": ["engineering", "life"]
+      "organization": "Sample Coastal Photography Club",
+      "position": "Sample Member",
+      "summary": "Sample monthly photo walks.",
+      "views": [
+        "ocean",
+        "life"
+      ]
     },
     {
-      "organization": "Fictional Sea Rescue Auxiliary",
-      "position": "Crew Support",
-      "summary": "Sample shore-side support role.",
-      "views": ["ocean"]
+      "organization": "Example Community Code Club",
+      "position": "Sample Mentor",
+      "summary": "Sample evening sessions for beginners.",
+      "views": [
+        "engineering",
+        "ocean"
+      ]
     }
   ],
   "projects": [
     {
-      "name": "Sample Tide Tracker",
-      "description": "A fictional app that charts tide tables and shows them on a phone.",
-      "views": ["engineering", "ocean"]
+      "name": "Sample Project One",
+      "description": "A fictional project used to show the layout.",
+      "views": [
+        "engineering"
+      ]
     },
     {
-      "name": "Sample Reef Survey Tool",
-      "description": "A fictional tool for logging reef observations and exporting them for researchers.",
-      "views": ["ocean"]
+      "name": "Sample Project Two",
+      "description": "A fictional project used to show the layout.",
+      "views": [
+        "engineering",
+        "life"
+      ]
     },
     {
-      "name": "Sample Build Dashboard",
-      "description": "A fictional dashboard summarising build health across repositories.",
-      "views": ["engineering"]
+      "name": "Sample Project Three",
+      "description": "A fictional photo journal of shoreline walks.",
+      "views": [
+        "ocean",
+        "life"
+      ]
     },
     {
-      "name": "Sample Recipe Box",
-      "description": "A fictional recipe organiser built for fun.",
-      "views": ["life"]
+      "name": "Sample Project Four",
+      "description": "A fictional hobby project.",
+      "views": [
+        "life"
+      ]
     }
   ],
   "interests": [
-    { "name": "Hiking", "keywords": ["coast paths", "sample trails"], "views": ["life"] },
-    { "name": "Cooking", "keywords": ["sample soups"], "views": ["life"] },
-    { "name": "Sailing", "keywords": ["sample dinghies"], "views": ["ocean", "life"] },
-    { "name": "Board games", "keywords": ["sample card games"], "views": ["life"] }
+    {
+      "name": "Sample Hobby A",
+      "keywords": [
+        "Sample keyword"
+      ],
+      "views": [
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Hobby B",
+      "keywords": [
+        "Sample keyword"
+      ],
+      "views": [
+        "ocean",
+        "life"
+      ]
+    },
+    {
+      "name": "Sample Hobby C",
+      "keywords": [
+        "Sample keyword"
+      ],
+      "views": [
+        "life"
+      ]
+    }
   ],
   "skills": [
-    { "name": "Languages", "keywords": ["Go", "TypeScript", "Python"] },
-    { "name": "Platforms", "keywords": ["Kubernetes", "Docker", "Terraform"] }
+    {
+      "name": "Sample skill group A",
+      "keywords": [
+        "Sample skill A",
+        "Sample skill B"
+      ]
+    },
+    {
+      "name": "Sample skill group B",
+      "keywords": [
+        "Sample skill C",
+        "Sample skill D"
+      ]
+    }
   ]
 }
