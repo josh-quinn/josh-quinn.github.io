@@ -36,4 +36,5 @@ Option 3.
 - every page except `dist/index.html` has no `<script>` element;
 - no page has an attribute whose name starts with `on`, a `javascript:` URL in `href`, `action`, `formaction` or `src`, or an `iframe[srcdoc]`;
 - `dist/index.html` has at most one `<script>`, which is `type="module"` and either inline or with a first-party `src` (no scheme, no `//` prefix);
+- the scan also covers `<template>` contents, any attribute holding a `javascript:` URL (after the browser's tab/CR/LF and leading-control stripping), and `<base href>` pointing off-site; an inline home module may not contain `http(s):`, a `//` import or a dynamic `import()`;
 - built `.js` files exist only under `dist/_astro/`.

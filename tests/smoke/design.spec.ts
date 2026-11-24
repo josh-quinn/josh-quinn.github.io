@@ -11,27 +11,40 @@ import { distDir, htmlFiles, urlPathOf } from '../helpers/dist';
  * Inspect built HTML through a real DOM (a context with JavaScript disabled, so nothing in the
  * page can run). Regexes over markup are evadable (`<a/onclick=x>`, a `>` inside a value).
  */
-type Findings = { scripts: { type: string; src: string; inline: boolean }[]; problems: string[] };
+type Findings = { scripts: { type: string; src: string; inline: boolean; text: string }[]; problems: string[] };
 
 async function inspect(page: Page, html: string): Promise<Findings> {
   await page.setContent(html, { waitUntil: 'domcontentloaded' });
   return page.evaluate(() => {
     const problems: string[] = [];
-    const scripts = [...document.querySelectorAll('script')].map((s) => ({
-      type: s.getAttribute('type') ?? '',
-      src: s.getAttribute('src') ?? '',
-      inline: !s.hasAttribute('src'),
-    }));
-    for (const el of document.querySelectorAll('*')) {
-      for (const name of el.getAttributeNames()) {
-        if (/^on/i.test(name)) problems.push(`<${el.localName}> has event-handler attribute ${name}`);
+    const scripts: { type: string; src: string; inline: boolean; text: string }[] = [];
+    // Browsers drop tab, CR and LF anywhere in a URL and trim leading C0 controls and spaces.
+    const normalise = (v: string) => v.replace(/[\t\n\r]/g, '').replace(/^[\x00-\x20]+/, '');
+    const scan = (root: Document | DocumentFragment) => {
+      for (const s of root.querySelectorAll('script')) {
+        scripts.push({
+          type: s.getAttribute('type') ?? '',
+          src: s.getAttribute('src') ?? '',
+          inline: !s.hasAttribute('src'),
+          text: s.textContent ?? '',
+        });
       }
-      for (const name of ['href', 'action', 'formaction', 'src']) {
-        const v = el.getAttribute(name);
-        if (v !== null && /^javascript:/i.test(v.trim())) problems.push(`<${el.localName} ${name}> is a javascript: URL`);
+      for (const el of root.querySelectorAll('*')) {
+        for (const name of el.getAttributeNames()) {
+          if (/^on/i.test(name)) problems.push(`<${el.localName}> has event-handler attribute ${name}`);
+          // Any attribute, not a fixed list (href, xlink:href, action, formaction, src, data, ...).
+          if (/^javascript:/i.test(normalise(el.getAttribute(name) ?? ''))) {
+            problems.push(`<${el.localName} ${name}> is a javascript: URL`);
+          }
+        }
+        if (el.localName === 'iframe' && el.hasAttribute('srcdoc')) problems.push('iframe with srcdoc');
+        if (el.localName === 'base' && /^\s*(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(el.getAttribute('href') ?? '')) {
+          problems.push('<base href> points off-site');
+        }
+        if (el instanceof HTMLTemplateElement) scan(el.content);
       }
-    }
-    if (document.querySelector('iframe[srcdoc]')) problems.push('iframe with srcdoc');
+    };
+    scan(document);
     return { scripts, problems };
   });
 }
@@ -62,6 +75,8 @@ test.describe('client JavaScript policy', () => {
       // Astro may inline a small module (no src) or emit /_astro/*.js. A src must be first-party:
       // no scheme and no protocol-relative "//" prefix.
       if (!s.inline) expect(s.src, 'module src is first-party').not.toMatch(/^\s*(?:[a-z][a-z0-9+.-]*:|\/\/)/i);
+      // An inline module must not reach off-site: no URL scheme, no "//" import, no dynamic import().
+      else expect(s.text, 'inline module is self-contained').not.toMatch(/https?:|\bimport\s*\(|\b(?:import|from)\s*["']\s*\/\//i);
     }
     expect(problems, 'home page').toEqual([]);
   });
