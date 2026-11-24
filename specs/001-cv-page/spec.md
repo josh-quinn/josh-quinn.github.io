@@ -346,6 +346,13 @@ AC-17 (the `CV overview` back-link on view pages) is owned by `CV3`, not `CV2`, 
 - `astro preview` serves `404.html` with status 404 for unknown paths, as GitHub Pages does. Both serve `/cv/foo` (no trailing slash) as not found.
 - The design-first phase (before any gate task) produces the approved look for `/cv/` and its baselines `cv-390.png` and `cv-1280.png`. `CV4` adds the view and 404 baselines with owner approval.
 - Section heading texts, view titles, the "Sample content", "CV overview", "Page not found" and empty-state texts are site chrome, not CV content, so they may be written in the page source.
+- The approved design-phase `/cv/` look (baselines `cv-390.png` and `cv-1280.png`) also carries this site chrome, which may be written in the page source. CV3 must reproduce it exactly to match the baselines:
+  - the opening label `Curriculum vitae`, before the `h1`;
+  - the label `Views` in front of the view links (inside `nav[aria-label="CV views"]`, not a link);
+  - the island bar label `Details` (the island's `aria-label` is also `Details`), with the fact terms `Location` and `Profiles`;
+  - the italic announcement line `A placeholder CV, shown while the real one is prepared.`. It follows the `Sample content` notice in the announcement bar (an `aside` with `aria-label="Announcement"`), shown only when the notice is;
+  - the document title `<basics.name> · CV`;
+  - the meta description `CV of <basics.name>: overview, with engineering, ocean and life views.`.
 - The view-selection and page-structure contracts are deliberately concrete so that the test author, who reads only this spec, can write the acceptance tests without seeing any plan or code.
 - The home page is unchanged by this feature. CV pages carry only a modest header with one link home (FR-015) and no other site navigation. Adding a link to `/cv/` from the home page is a separate decision, because it would change the home page's visual baselines.
 - The content file is assumed schema-valid. The existing content unit test (`tests/unit/content/`) enforces the schema; this feature adds no build-time validation.
