@@ -55,6 +55,7 @@
   --text-h3: 1.22rem;
   --text-h2: 1.5rem;
   --text-h1: 1.875rem; /* about 1.9x body: modest, never a hero size */
+  --text-section: var(--text-h1); /* split section headings: never larger than the h1 */
 
   --weight-body: 450; /* (ref) */
   --weight-strong: 600;
@@ -72,6 +73,7 @@
   --space-7: 3rem;
   --space-8: 4rem;
   --measure: 34rem; /* text column, about 70 characters at body size */
+  --measure-wide: 60rem; /* nav bar and two-column split: media island beside a text column */
   --gutter: var(--space-4);
 
   /* Borders and radii: hairlines, nearly square corners. */
@@ -92,6 +94,7 @@
   --stagger: 90ms;
   --rise: 6px;
   --blink: 1.1s;
+  --duration-type: 1.2s; /* a typed terminal line, one step per character */
   --ease: ease;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }

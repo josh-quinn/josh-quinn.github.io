@@ -46,7 +46,7 @@ Earlier runs, for the record:
 The first critic table proved little: two easy cases, and the placeholder home page scored like the reference. Three changes followed:
 
 - **More cases.** Three near misses were added: the real built home page with one planted defect each (`evals/design-critic/cases/near-miss-*.css`, injected before the screenshot). There is also a control, `home`: the same page with nothing injected.
-- **A stricter rubric.** The shadow rule matches `DESIGN.md`. There are no drop shadows: a single faint shadow costs 10 points, and heavy or repeated shadows are a never-list item. Gradients are judged as decorative (never) or structural (the paper grid and vignette, allowed).
+- **A stricter rubric.** At the time, the critic's shadow scoring was: a single faint shadow costs 10 points, and heavy or repeated shadows are a never-list item. (Changed in 8b fix round 1: see "Shadow rule fix" below.) Gradients are judged as decorative (never) or structural (the paper grid and vignette, allowed).
 - **Repeats.** The picked pair ran every case 3 times (`npm run eval:critic -- --pairs claude:sonnet --repeat 3`). This was after the redesign (technical paper, islands, motion, smaller body text).
 
 | Case | Expected | Result (3 runs) | Score spread |
@@ -64,6 +64,64 @@ The first critic table proved little: two easy cases, and the placeholder home p
 - **Threshold confirmed at 80.** Every pass scored at least 84 and every fail at most 55, so any threshold from 56 to 84 classifies the data. 80 is kept because it matches the role prompt (`agents/src/design-critic.md`). The thinnest margin is the reference, 4 points above it; it loses 10 points for its one soft shadow under the stricter rule.
 - **Transient errors.** An earlier attempt at this run had 8 transient errors: the claude CLI exited with no tokens used, while the same call succeeded minutes later. `tools/gate/ai-agent.ts` now reports the CLI's own error text.
 - **Scope.** Only the picked pair was re-run; the other pairs' rows above predate the near misses.
+
+## Re-run after the pi.dev components (2026-11-24)
+
+The home page changed: it gained an announcement bar, a mono nav bar, a bracket link and a split with a sticky terminal island. `DESIGN.md` gained a "Components" section. The near misses inject their defect into the built home page, so the picked pair ran every case 3 times again (`npm run eval:critic -- --pairs claude:sonnet --repeat 3`). The `reference` case was then run 3 more times on its own (`ai-eval.ts case design-critic reference`).
+
+| Case | Expected | Result | Score spread |
+|---|---|---|---|
+| `home` (control, new home page) | pass | pass ×3 | 91-92 |
+| `reference` | pass | pass ×3, fail ×3 (6 runs) | 58-84 |
+| `generic-page` | fail | fail ×3 | 2-3 |
+| `near-miss-sans-white` | fail | fail ×3 | 58-62 |
+| `near-miss-indigo` | fail | fail ×3 | 55-55 |
+| `near-miss-hero-cards` | fail | fail ×3 | 52-55 |
+
+- **The 3-repeat run scored 17/18.** Tokens: 453,141 in and 11,614 out; 149 s of summed latency.
+- **The site's own pages:** 80 still separates them cleanly. The control scored 91-92 and every planted defect at most 62, a margin of 29 points. The near-miss and generic scores barely moved.
+- **The reference no longer passes reliably.** It used to score 84-86; across 6 runs it now scores 58, 70, 74, 82, 82 and 84.
+  - Every run deducts for the soft shadow on its install panel.
+  - Most runs now also see a lifted, shaded nav bar. `DESIGN.md` now describes the nav bar exactly: a flat row over a hairline.
+  - With two shadowed panels, the rubric's never-list wording ("shadows on several panels") applies. Three runs applied it, which caps the score at 60 or deducts enough to fail.
+  - Those fails followed the rubric's wording at the time, which counted panels rather than judging how heavy the shadows were.
+- **Threshold:** kept at 80. It still separates every page built for this site from every planted defect. It no longer places the reference on the pass side.
+- **Resolved** by the controller in 8b fix round 1: see "Shadow rule fix" below. The reference stays a required pass; only the critic's scoring of shadows changed.
+
+## Shadow rule fix (8b fix round 1, run 2026-11-24)
+
+The site's own rule is unchanged: this site's pages use no drop shadows (`DESIGN.md` "Shadow"). Only the critic's scoring changed, in `evals/design-critic/rubric.md`, and the reference stays a required pass. `DESIGN.md` now states the shadow rule as the site's own, and leaves scoring to the rubric. Its nav bar text describes this site's bar without comparing it with the reference.
+
+**Rubric changes:**
+
+- **Shadows are judged by how they look, not by how many panels carry one.** Heavy, dark or hard-edged shadows, or a grid of shadowed cards, stay never-list items. Faint, soft panel shadows are a deduction only, never a never-list item.
+- **Scope.** A logo's or brand mark's own colours are branding, so out of scope. Text or panels caught faded part-way through an entrance are scroll-animation artefacts, and cost nothing.
+
+**Size of the soft-shadow deduction (measured, claude/sonnet):**
+
+| Soft-shadow rule | `reference` scores | Reference passes |
+|---|---|---|
+| 10 per panel, at most 20 (as first ruled) | 3 repeats: 72, 78, 80; 6 more: 80, 78, 75, 78, 76, 78 | 2/9 |
+| **10 in total, however many panels (adopted)** | 6 runs: 88, 89, 88, 89, 88, 88; 3 repeats: 88-89 | **9/9** |
+
+- The reference has soft shadows on two panels, its install box and its nav bar.
+- **At 20 points:** it starts at 80 before any other judgement. A 2-point note on its lighter-blue accent word then fails it, so the pass margin is zero.
+- **At 10 in total:** it scores 88-89. That is about the 84-86 it scored before the components were added, when the critic saw only one shadowed panel.
+
+**Full calibration with the adopted rule** (`npm run eval:critic -- --pairs claude:sonnet --repeat 3`):
+
+| Case | Expected | Result (3 runs) | Score spread |
+|---|---|---|---|
+| `home` (control) | pass | pass ×3 | 92-93 |
+| `reference` | pass | pass ×3 (and 6/6 in the separate run) | 88-89 |
+| `generic-page` | fail | fail ×3 | 2-3 |
+| `near-miss-sans-white` | fail | fail ×3 | 55-58 |
+| `near-miss-indigo` | fail | fail ×3 | 55-55 |
+| `near-miss-hero-cards` | fail | fail ×3 | 55-55 |
+
+- **Accuracy 18/18**, with 0 unstable groups and 0 errors. Tokens: 500,337 in and 11,570 out; 150 s of summed latency.
+- **Threshold 80 separates every case.** Every pass scored at least 88, and every fail at most 58. The thinnest margin is now 8 points (the reference).
+- **The defects still fail at full strength.** A shadowed card grid is still a never-list item (`near-miss-hero-cards`, 55).
 
 ## Decision
 

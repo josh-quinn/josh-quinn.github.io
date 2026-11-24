@@ -2,32 +2,67 @@
 import Base from '../layouts/Base.astro';
 ---
 <Base title="Josh Quinn" description="Personal site. Placeholder while it is being built.">
-  <main class="page">
-    <span class="label reveal">Personal site</span>
-    <h1>Josh Quinn</h1>
-    <p class="reveal d2">
-      Placeholder. This site is under construction: a short CV, notes and the odd project will live
-      here. For now, this page only shows the type, colour and spacing the rest of the site will use.
-    </p>
-    <p class="meta reveal d3">Status: under construction</p>
+  <aside class="announce" aria-label="Announcement">
+    <p>Under construction: a short CV comes first, then notes.</p>
+  </aside>
+  <div class="page-wide">
+    <header class="navbar">
+      <a class="navbar-brand" href="/" aria-current="page">Josh Quinn</a>
+    </header>
+    <main>
+      <div class="measure">
+        <span class="label reveal">Personal site</span>
+        <h1>Josh Quinn</h1>
+        <p class="reveal d2">
+          Placeholder. This site is under construction: a short CV, notes and the odd project will
+          live here. For now, this page only shows the type, colour and spacing the rest of the site
+          will use.
+        </p>
+        <p class="reveal d3"><a class="bracket" href="#colophon">Read the colophon</a></p>
+      </div>
 
-    <section class="island terminal d4" aria-label="Terminal, placeholder">
-      <div class="island-bar"><span class="label">session · placeholder</span></div>
-      <pre class="island-body"><span class="prompt">$</span> cat now.txt
-Building this site: a short CV and some notes, soon.
+      <div class="split">
+        <div class="split-media">
+          <section class="island terminal d4" aria-label="Terminal, placeholder">
+            <div class="island-bar"><span class="label">session · placeholder</span></div>
+            <pre class="island-body"><span class="prompt">$</span> <span class="typed" style="--chars: 11">cat now.txt</span>
+<span class="typed-out">Building this site: a short CV and some notes, soon.</span>
 <span class="prompt">$</span> <span class="cursor" aria-hidden="true"></span></pre>
-    </section>
+            <div class="island-foot"><span class="label">now.txt · read only</span></div>
+          </section>
+        </div>
 
-    <section class="island d5" aria-labelledby="colophon">
-      <div class="island-bar"><h2 id="colophon" class="label">Colophon</h2></div>
-      <dl class="facts island-body">
-        <dt>Type</dt>
-        <dd>Newsreader, Departure Mono</dd>
-        <dt>Paper</dt>
-        <dd>Drawn in CSS</dd>
-        <dt>Scripts</dt>
-        <dd>None</dd>
-      </dl>
-    </section>
-  </main>
+        <div class="split-prose">
+          <section class="reveal d5" aria-labelledby="what">
+            <h2 id="what">What goes here</h2>
+            <p>
+              Placeholder. A short CV comes first, with a view for each audience. Notes and the odd
+              project follow, written as plain pages that read well on a phone.
+            </p>
+          </section>
+
+          <section class="reveal d6" aria-labelledby="how">
+            <h2 id="how">How it is made</h2>
+            <p>
+              Placeholder. Static pages, one serif and one mono, set on paper drawn in CSS. Nothing
+              runs in your browser: the motion on this page is CSS alone, and it stops when you ask
+              for reduced motion.
+            </p>
+          </section>
+
+          <section aria-labelledby="colophon">
+            <h2 id="colophon">Colophon</h2>
+            <dl class="facts">
+              <dt>Type</dt>
+              <dd>Newsreader, Departure Mono</dd>
+              <dt>Paper</dt>
+              <dd>Drawn in CSS</dd>
+              <dt>Scripts</dt>
+              <dd>None</dd>
+            </dl>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
 </Base>
