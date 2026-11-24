@@ -13,9 +13,9 @@ npm run preview               # http://localhost:4321/cv/ , /cv/engineering/ , /
 
 ```sh
 npm run build && npx playwright test tests/acceptance/CV1/   # module criteria AC-01..AC-10
-npm run build && npx playwright test tests/acceptance/CV2/   # view pages + 404, AC-11..AC-20, AC-30..AC-38
-npm run build && npx playwright test tests/acceptance/CV3/   # overview, AC-21..AC-24, AC-30..AC-38
-npm run build && npx playwright test tests/acceptance/CV4/   # baseline files, AC-50
+npm run build && npx playwright test tests/acceptance/CV2/   # view pages + 404, AC-11..AC-16, AC-18..AC-20, AC-30..AC-39
+npm run build && npx playwright test tests/acceptance/CV3/   # overview, AC-17, AC-21..AC-24, AC-30..AC-39
+npm run build && npx playwright test tests/acceptance/CV4/   # baseline files and suite listing, AC-50 (a)(b)
 npm run test:unit                                            # inner unit tests (tests/unit/cv/)
 npm run test:visual                                          # AC-51, in the Linux image
 npm run gate -- task CV2                                     # the full verdict for one task

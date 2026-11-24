@@ -16,6 +16,7 @@ No other HTML is built under `dist/cv/` (AC-18).
 
 ```text
 <html lang="en">  <title>CV · {basics.name}</title>  <meta name="description" …>
+header (modest site header)          a[href="/"] {basics.name}   (the only link in it; FR-015, AC-39)
 main.page
   [data-cv-placeholder].label        "Sample content"   (only if meta.placeholder === true)
   .label                              "CV"
@@ -31,9 +32,10 @@ main.page
 
 ```text
 <html lang="en">  <title>{View title} CV · {basics.name}</title>  <meta name="description" …>
+header (modest site header)          a[href="/"] {basics.name}   (the only link in it; FR-015, AC-39)
 main.page
   [data-cv-placeholder].label        "Sample content"   (only if meta.placeholder === true)
-  .label                              {basics.name} · {basics.label}   (name and label shown)
+  .label                              {basics.label}   (the name is in the header link)
   h1                                  {View title}
   nav[aria-label="CV views"]          a×3, current one aria-current="page"
   a[href="/cv/"]                      "CV overview"     (added by CV3, AC-17)

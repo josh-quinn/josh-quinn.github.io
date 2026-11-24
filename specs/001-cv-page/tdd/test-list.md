@@ -2,17 +2,17 @@
 feature: 001-cv-page
 loop: outside-in
 profile: .specify/memory/tdd-profile.md
-spec_criteria: 35
+spec_criteria: 36
 planned_at: 28afd33
-updated_at: 28afd33
+updated_at: b145877
 suite_baseline: green
 ---
 
 # Test List: CV pages
 
-Derived from `spec.md` (acceptance criteria AC-01 to AC-24, AC-30 to AC-38, AC-50, AC-51) and `plan.md`. The outer loop is written by the `test-author` role into `tests/acceptance/<gate-task>/` and committed failing before any implementation (constitution I). The inner loop is the implementer's, test-first, in `tests/unit/cv/`. Gate-task ownership follows spec §Delivery Slices; see [gate-tasks.md](../gate-tasks.md).
+Derived from `spec.md` (acceptance criteria AC-01 to AC-24, AC-30 to AC-39, AC-50, AC-51) and `plan.md`. The outer loop is written by the `test-author` role into `tests/acceptance/<gate-task>/` and committed failing before any implementation (constitution I). The inner loop is the implementer's, test-first, in `tests/unit/cv/`. Gate-task ownership follows spec §Delivery Slices; see [gate-tasks.md](../gate-tasks.md).
 
-The cross-cutting criteria AC-30 to AC-38 apply to two route sets, owned by two gate tasks, so each gets two acceptance behaviors: A25–A33 for CV2's routes and A34–A42 for CV3's.
+The cross-cutting criteria AC-30 to AC-39 apply to two route sets, owned by two gate tasks, so each gets two acceptance behaviors: A25–A33 and A45 for CV2's routes, A34–A42 and A46 for CV3's. A45 and A46 (AC-39, the home link) were appended in fix round 1, and existing ids are unchanged. A24 (AC-24) is expected green on arrival in CV3, because CV1 and CV2 add no content values to `src/`. The test author records that instead of forcing a red. It turns red only if a hard-coded design prototype is on `main`.
 
 ## Outer loop: acceptance behaviors
 
@@ -60,8 +60,10 @@ The cross-cutting criteria AC-30 to AC-38 apply to two route sets, owned by two 
 | A40 | `/cv/`: one mono `Sample content` notice before the `h1` when placeholder | AC-36, FR-007 | example | PENDING | `tests/acceptance/CV3/` |
 | A41 | `/cv/`: `lang="en"`, non-empty title containing the name and distinct from the view titles, meta description | AC-37 | example | PENDING | `tests/acceptance/CV3/` |
 | A42 | `/cv/`: 18px body, italic `h1`/`h2`, grid paper present, one or two islands | AC-38, FR-011 | example | PENDING | `tests/acceptance/CV3/` |
-| A43 | Baseline PNGs exist for `cv`, `cv-engineering`, `cv-ocean`, `cv-life` and `404` at widths 390 and 1280 | AC-50, FR-013 | example | PENDING | `tests/acceptance/CV4/` |
-| A44 | The visual suite matches every AC-50 route at both widths in the Linux image | AC-51, FR-013 | approval | PENDING | `tests/visual/pages.spec.ts` (gate `visual` check) |
+| A43 | For `cv`, `cv-engineering`, `cv-ocean`, `cv-life` and `404` at 390 and 1280, the baseline PNG exists with that header width, and the visual suite's `--list` output has `<id> at <width>px matches its baseline` | AC-50, FR-013 | example | PENDING | `tests/acceptance/CV4/` |
+| A44 | The visual suite matches every AC-50 route at both widths in the Linux image (owned by CV4; CV3's T030 only prepares `/cv/`) | AC-51, FR-013 | approval | PENDING | `tests/visual/pages.spec.ts` (gate `visual` check) |
+| A45 | CV2 view routes: a `header` before the `h1` holds exactly one link, to `/`, with text `basics.name` | AC-39, FR-015 | example | PENDING | `tests/acceptance/CV2/` |
+| A46 | `/cv/`: a `header` before the `h1` holds exactly one link, to `/`, with text `basics.name` | AC-39, FR-015 | example | PENDING | `tests/acceptance/CV3/` |
 
 ## Inner loop: unit behaviors
 
@@ -97,6 +99,12 @@ The cross-cutting criteria AC-30 to AC-38 apply to two route sets, owned by two 
 | U26 | `allowedProfiles` keeps `GitHub` and `LinkedIn` in source order | AC-35, FR-006 | example | PENDING | `tests/unit/cv/allowed-profiles.test.ts` |
 | U27 | `allowedProfiles` matches network names case-insensitively (`github`, `LINKEDIN`) | AC-35 | example | PENDING | `tests/unit/cv/allowed-profiles.test.ts` |
 | U28 | `allowedProfiles` drops any other network (`GitLab`, `Mastodon`, `''`) | AC-35, FR-006 | example | PENDING | `tests/unit/cv/allowed-profiles.test.ts` |
+| U36 | `entryTitle` returns `''` when the primary field is absent or not a string | FR-014 | example | PENDING | `tests/unit/cv/entry-title.test.ts` |
+| U37 | `entryTitle` throws an `Error` for a section key outside `SECTION_ORDER` | FR-014 | example | PENDING | `tests/unit/cv/entry-title.test.ts` |
+| U38 | `allowedProfiles(undefined)` and basics without `profiles` both return `[]` | AC-35, FR-014 | example | PENDING | `tests/unit/cv/allowed-profiles.test.ts` |
+| U39 | A non-skill entry with `views: []` or no `views` is in no view's result | AC-02, FR-002 | example | PENDING | `tests/unit/cv/sections-for-view.test.ts` |
+
+U36–U39 were appended in fix round 1. They cover the contract behaviour the spec's View-Selection Contract states for these functions (FR-014). Ids U29–U35 are unchanged, and the gap in numbering is normal.
 
 ### `src/lib/cv.ts` additions (CV2)
 

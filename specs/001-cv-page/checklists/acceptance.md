@@ -17,7 +17,7 @@ Depth: standard. Audience: PR reviewer of the spec (the owner) before the test a
 - [ ] CHK003 Is the content of the overview page fully listed, including what it must NOT show? [Completeness, Spec §FR-004, AC-23]
 - [ ] CHK004 Is the content of the 404 page specified enough to be recognised by a test (heading text, link, title)? [Completeness, Spec §AC-19, AC-37]
 - [ ] CHK005 Are requirements stated for both states of `meta.placeholder` (true, and false or absent)? [Completeness, Spec §FR-007, AC-36]
-- [ ] CHK006 Is the set of routes each cross-cutting criterion (AC-30 to AC-38) applies to stated explicitly, per delivery slice? [Completeness, Spec §Delivery Slices]
+- [ ] CHK006 Is the set of routes each cross-cutting criterion (AC-30 to AC-39) applies to stated explicitly, per delivery slice? [Completeness, Spec §Delivery Slices]
 
 ## Requirement Clarity
 
@@ -67,6 +67,11 @@ Depth: standard. Audience: PR reviewer of the spec (the owner) before the test a
 - [ ] CHK035 Is the dependency on the design-first phase for the `/cv/` baselines documented, together with what CV4 adds? [Dependency, Spec §Assumptions, AC-50]
 - [ ] CHK036 Is the assumption that `astro preview` serves `404.html` with status 404 recorded, so a failure can be traced to the server rather than the page? [Assumption, Spec §Assumptions]
 - [ ] CHK037 Is reliance on the existing schema test (rather than build-time validation) recorded? [Assumption, Spec §Clarifications]
+
+## Added in fix round 1
+
+- [ ] CHK038 Is the home-link requirement (FR-015, AC-39) consistent with "no other site navigation", with the 404 page's exemption, and with AC-16's three-link nav? [Consistency, Spec §FR-015, AC-39, Clarifications]
+- [ ] CHK039 Are the exported TypeScript types in the View-Selection Contract loose enough for every fixture the acceptance criteria need (no `views`, absent sections, string section keys)? [Clarity, Spec §View-Selection Contract, AC-02, AC-10]
 
 ## Notes
 

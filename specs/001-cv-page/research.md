@@ -53,7 +53,7 @@ Phase 0 of `/speckit-plan`. Each decision was checked against the repository as 
 ## R9. Delivery order and internal links
 
 - **Decision**: CV1 (module), CV2 (view pages and 404), CV3 (overview, plus the `CV overview` back-links on view pages, AC-17), CV4 (visual baselines).
-- **Rationale**: the gate's `links` check (lychee, offline, over `dist/`) runs on every gate task. View pages link to each other and to the external profiles only, so CV2 never links to a missing page. The overview, which links to the views, comes after them. The back-link from the views to `/cv/` is added in the same PR that builds `/cv/`. This differs from the controller's suggested order (overview before views) for exactly that reason.
+- **Rationale**: the gate's `links` check (lychee, offline, over `dist/`) runs on every gate task. View pages link only to each other, to `/` (the existing home page, through the header link of FR-015) and to the external profiles, so CV2 never links to a missing page. The overview, which links to the views, comes after them. The back-link from the views to `/cv/` is added in the same PR that builds `/cv/`. This differs from the controller's suggested order (overview before views) for exactly that reason.
 - **Alternatives**: overview first (its view links would fail lychee until the views exist); views and overview in one PR (too large to review as one gate task).
 
 ## R10. Hard-coded content guard

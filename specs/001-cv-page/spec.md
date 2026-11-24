@@ -27,7 +27,7 @@ The owner delegated these answers to the controller. Each answer applies the con
 - Q: Where does the "Sample content" notice go, what exactly does it say, and does the 404 page show it? → A: Exactly once on each CV page, text exactly `Sample content`, before the `h1` in document order. Not on the 404 page. (FR-007, AC-36)
 - Q: Do view pages repeat the overview's summary and location, or only the name and label? → A: Only the name and label. The summary and location are on the overview alone. (FR-005, AC-15)
 - Q: Should the build fail when the content file breaks its schema? → A: No new build-time validation. The existing content unit test (schema validation in `tests/unit/content/`) stays the guard, and pages assume schema-valid content.
-- Q: Should CV pages carry a site-wide navigation or a link to the home page? → A: No. This feature adds no site navigation, and the home page is unchanged. The 404 page alone links to `/`.
+- Q: Should CV pages carry a site-wide navigation or a link to the home page? → A: (Revised in fix round 1 by controller ruling, owner-delegated. The first answer was "No".) Yes, a small home link and nothing more. Each CV page has a modest `header` before its `h1`, holding one link to `/` whose text is `basics.name`. There is no other site navigation, and the home page itself is unchanged. `/` already exists, so the link never breaks the internal-link check in any delivery slice. (FR-015, AC-39)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -144,7 +144,7 @@ These terms are used by every requirement and acceptance criterion below.
 - **FR-002**: Each view route MUST list exactly the expected sections for its view: every entry tagged for it, no other entry, in section order and then content-file order, with empty sections left out.
 - **FR-003**: Each entry MUST show its shown fields and nothing else from the content file. Dates, `work.location` and `education.score` MUST NOT be shown, even when present.
 - **FR-004**: The overview `/cv/` MUST show `basics.name`, `basics.label`, `basics.summary` and the location `basics.location.region` ("Ireland"), a link to each view, the allowed profile links, and a Skills section listing every skill in content-file order (with or without `views`). It MUST NOT show any other section.
-- **FR-005**: Every view page MUST show `basics.name` and `basics.label` (not the summary or location, which are on the overview only), links to all three views with the current one marked, a link back to the overview, and the allowed profile links.
+- **FR-005**: Every view page MUST show `basics.name` and `basics.label` (not the summary or location, which are on the overview only), links to all three views with the current one marked, a link back to the overview, the home link of FR-015, and the allowed profile links.
 - **FR-006**: The only contact routes on any CV page MUST be the allowed profile links. No email address, phone number, `mailto:` or `tel:` link may appear.
 - **FR-007**: When `meta.placeholder` is `true`, every CV page MUST show, once and before its `h1`, a small, unobtrusive mono-style notice reading exactly "Sample content". When it is not `true`, no notice is shown. The 404 page never shows it.
 - **FR-008**: A request for any path that is not a built page, including `/cv/<anything other than the three views>/`, MUST get the site 404 page with HTTP status 404.
@@ -154,27 +154,90 @@ These terms are used by every requirement and acceptance criterion below.
 - **FR-012**: CV pages and the 404 page MUST have zero axe violations.
 - **FR-013**: CV pages and the 404 page MUST match owner-approved visual baselines at 390px and 1280px.
 - **FR-014**: The view-selection rules (which entries go on which page) MUST live in one shared module with the contract below, so they are unit-testable apart from the pages.
+- **FR-015**: Every CV page MUST start with a modest site header, before its `h1`, holding exactly one link home (`href="/"`, text `basics.name`). The header holds no other navigation.
 
 ### View-Selection Contract
 
-The module `src/lib/cv.ts` exports the following. Acceptance tests import it directly (no browser) and pass content objects built at runtime.
+The module `src/lib/cv.ts` exports exactly these TypeScript signatures and types. This is the single contract: `plan.md` and `contracts/view-selection.md` refer to it and do not restate it. Acceptance tests import the module directly (no browser) and pass content objects built at runtime. The gate's build step runs `astro check`, and `tsconfig.json` includes every file, so acceptance tests are type-checked against these types. The input types are deliberately loose: every key is optional, `views` is optional on every section's entries, and section keys are accepted as plain `string`. That way the fixtures AC-02 to AC-10 need (entries with no `views`, absent sections, iteration over string keys) type-check.
 
-| Export | Contract |
-|---|---|
-| `VIEWS` | Array equal to `['engineering', 'ocean', 'life']`. |
-| `SECTION_ORDER` | Array equal to `['work', 'projects', 'education', 'certificates', 'awards', 'volunteer', 'interests', 'skills']`. |
-| `isView(value: string): boolean` | `true` only for the three view names, compared exactly (case-sensitive). |
-| `entryTitle(section: string, entry: object): string` | The entry's primary field value (see the Sections table). |
-| `sectionsForView(resume: object, view: string): Array<{ key: string; entries: object[] }>` | The expected sections for `view`: one item per non-empty section, in section order, each holding the tagged entries in content-file order. Throws an `Error` when `isView(view)` is false. |
-| `overviewSections(resume: object): Array<{ key: string; entries: object[] }>` | `[{ key: 'skills', entries: <every skill, in order> }]`, or `[]` when there are no skills. Never any other section. |
+```ts
+export const VIEWS: readonly ['engineering', 'ocean', 'life'];
+export type View = (typeof VIEWS)[number];
 
-Both section functions treat a missing section key as empty, ignore `meta` and `basics`, never mutate their input, and return entries deep-equal to the source entries.
+export const SECTION_ORDER: readonly [
+  'work', 'projects', 'education', 'certificates', 'awards', 'volunteer', 'interests', 'skills',
+];
+export type SectionKey = (typeof SECTION_ORDER)[number];
+
+/** One content entry as read from JSON. `views` is optional here for every section. */
+export interface Entry {
+  readonly views?: readonly string[];
+  readonly [field: string]: unknown;
+}
+
+export interface Profile {
+  readonly network: string;
+  readonly username: string;
+  readonly url: string;
+}
+
+export interface Basics {
+  readonly name?: string;
+  readonly label?: string;
+  readonly summary?: string;
+  readonly location?: { readonly countryCode?: string; readonly region?: string };
+  readonly profiles?: readonly Profile[];
+}
+
+/** The content file, or any runtime fixture of it. Every key is optional. */
+export interface Resume {
+  readonly meta?: { readonly placeholder?: unknown; readonly [key: string]: unknown };
+  readonly basics?: Basics;
+  readonly work?: readonly Entry[];
+  readonly projects?: readonly Entry[];
+  readonly education?: readonly Entry[];
+  readonly certificates?: readonly Entry[];
+  readonly awards?: readonly Entry[];
+  readonly volunteer?: readonly Entry[];
+  readonly interests?: readonly Entry[];
+  readonly skills?: readonly Entry[];
+}
+
+export interface SectionResult {
+  readonly key: SectionKey;
+  readonly entries: readonly Entry[];
+}
+
+// Acceptance-tested (AC-01 to AC-10):
+export function isView(value: string): value is View;
+export function entryTitle(section: string, entry: Entry): string;
+export function sectionsForView(resume: Resume, view: string): SectionResult[];
+export function overviewSections(resume: Resume): SectionResult[];
+
+// Also exported for the pages; covered by inner unit tests, not acceptance tests:
+export const VIEW_TITLES: Readonly<Record<View, string>>;          // Engineering, Ocean, Life
+export const SECTION_HEADINGS: Readonly<Record<SectionKey, string>>; // the Sections table headings
+export function viewPath(view: View): string;                        // '/cv/<view>/'
+export function allowedProfiles(basics: Basics | undefined): Profile[];
+export function entryDetails(section: string, entry: Entry): { lines: string[]; items: string[] };
+export function showPlaceholder(resume: Resume): boolean;           // true only when meta.placeholder === true
+```
+
+Behaviour:
+
+- `isView` is `true` only for the three view names, compared exactly (case-sensitive).
+- `entryTitle` returns the entry's primary field (Sections table), or `''` when that field is absent or not a string. It throws an `Error` when `section` is not one of `SECTION_ORDER`.
+- `sectionsForView` returns the expected sections for `view`: one item per non-empty section, in section order, each holding the tagged entries in content-file order. It throws an `Error` naming the value when `isView(view)` is false.
+- `overviewSections` returns `[{ key: 'skills', entries: <every skill, in order> }]`, or `[]` when there are no skills. It never returns any other section.
+- Both section functions treat a missing section key as empty, ignore `meta` and `basics`, never mutate their input, and return entries deep-equal to the source entries.
+- `allowedProfiles` keeps the allowed profiles in source order. `entryDetails` returns the present shown fields other than the primary field as `lines` (Shown fields order) and each `highlights` or `keywords` item as `items`, and never a date, `work.location` or `education.score`.
 
 ### Page Structure Contract
 
 Acceptance tests find content through these observable hooks, so every CV page MUST expose them.
 
 - Exactly one `h1` per page. On the overview its text is `basics.name`. On a view page it is the view title.
+- Before the `h1`, a `header` element (the modest site header) holding exactly one `a`, whose `href` is `/` and whose text is `basics.name`. The header holds no other link.
 - Each shown section is a `section` element with `data-cv-section="<key>"`, containing an `h2` whose text is the section's heading text.
 - Each entry is an element with the attribute `data-cv-entry`, inside its section, containing exactly one `h3` whose text is the entry's primary field value.
 - The view links are inside `nav[aria-label="CV views"]`: one `a` per view, in view order, link text equal to the view title, `href` equal to the view route. On a view page the current view's link has `aria-current="page"`.
@@ -224,7 +287,7 @@ Each criterion is self-contained, and its expectations are computed from the con
 **Every page in route set R** (cross-cutting; each delivery slice tests its own routes)
 
 - **AC-30 Privacy**: The built HTML file of each route in R, read raw, attributes included, passes `assertNoPrivateData` from `tests/privacy/patterns.ts` with its default patterns: the built-in patterns plus `.private/forbidden.txt` terms when that file exists. The rendered body text of each route contains no match for `\b(19|20)\d{2}\b`.
-- **AC-31 No script**: The built HTML file of each route in R contains no `<script` (case-insensitive), no inline event-handler attribute (any element attribute whose name matches `on[a-z]+`, case-insensitive, such as `onclick`), and no `javascript:` (case-insensitive). Loaded in the browser, `document.scripts.length` is 0.
+- **AC-31 No script**: The built HTML file of each route in R contains no `<script` (case-insensitive), no inline event-handler attribute (any element attribute whose full name matches `^on[a-z]+$`, case-insensitive, such as `onclick`, so that `content` and `controls` do not count), and no `javascript:` (case-insensitive). Loaded in the browser, `document.scripts.length` is 0.
 - **AC-32 No overflow at 390px**: With a 390×844 viewport, after load and `document.fonts.ready`, `document.documentElement.scrollWidth` is at most `document.documentElement.clientWidth` on each route in R.
 - **AC-33 Accessibility**: An axe scan with the default rule set, run after the page's finite animations finish (as in `tests/a11y/axe.spec.ts`), reports zero violations on each route in R.
 - **AC-34 Reduced motion**: With `prefers-reduced-motion: reduce` emulated, `document.getAnimations()` is empty after load on each route in R.
@@ -232,21 +295,26 @@ Each criterion is self-contained, and its expectations are computed from the con
 - **AC-36 Placeholder notice**: When the content file has `meta.placeholder === true`, each CV route in R has exactly one `data-cv-placeholder` element, whose text is exactly `Sample content`, which comes before the page's `h1` in document order, and whose computed `font-family` includes `Departure Mono`. Otherwise no CV route has such an element. The 404 page never has one.
 - **AC-37 Document**: Each route in R has `<html lang="en">`, a non-empty `<title>` and a `meta[name="description"]` with non-empty `content`. CV route titles contain `basics.name` and are distinct from each other. The 404 title contains `Page not found`.
 - **AC-38 Design basics**: On each route in R at 1280px, the computed `font-size` of `body` is `18px`, every `h1` and `h2` has computed `font-style: italic`, the `body::before` computed `background-image` is not `none` (the grid paper), and there are at most two `.island` elements. `/cv/` has at least one.
+- **AC-39 Home link**: On each CV route in R, the first `header` element comes before the `h1` in document order and contains exactly one `a`, with `href="/"` and text equal to `basics.name`. The 404 page is not a CV route; its link home is AC-19's.
 
 **Visual baselines**
 
-- **AC-50**: For each page id and route, `cv` (`/cv/`), `cv-engineering` (`/cv/engineering/`), `cv-ocean` (`/cv/ocean/`), `cv-life` (`/cv/life/`) and `404` (`/cv/foo/`), the files `tests/visual/__screenshots__/<id>-390.png` and `<id>-1280.png` exist and are PNG images whose header width is 390 and 1280 pixels respectively.
+- **AC-50**: For each page id and route, `cv` (`/cv/`), `cv-engineering` (`/cv/engineering/`), `cv-ocean` (`/cv/ocean/`), `cv-life` (`/cv/life/`) and `404` (`/cv/foo/`), and for each width 390 and 1280:
+  - (a) the file `tests/visual/__screenshots__/<id>-<width>.png` exists and is a PNG image whose header width is `<width>` pixels;
+  - (b) the visual suite has a test for it. The output of `npx playwright test -c playwright.visual.config.ts --list`, run on the host (listing renders nothing, so no Docker is needed), contains a test titled exactly `<id> at <width>px matches its baseline`.
+
+  Part (b) is what makes the gate's `visual` check compare that route, because that check runs only the tests the suite lists.
 - **AC-51**: The site's visual regression suite (`tests/visual/`, run in the Linux Playwright image by `npm run test:visual` and the gate's `visual` check) renders each AC-50 route at 390px and 1280px and matches its baseline within the suite's existing tolerance. This criterion is verified by the gate's `visual` check, not by a host acceptance test, because baselines render only in the Linux image. The baselines are approved by the owner before they are committed.
 
 ### Delivery Slices
 
 Each slice is one gate task and one pull request. Its acceptance tests live in `tests/acceptance/<id>/`.
 
-| Gate task | Scope | Owns | Route set R for AC-30 to AC-38 |
+| Gate task | Scope | Owns | Route set R for AC-30 to AC-39 |
 |---|---|---|---|
 | `CV1` | View-selection module | AC-01 to AC-10 | none |
-| `CV2` | View pages and the site 404 page | AC-11 to AC-16, AC-18 to AC-20, AC-30 to AC-38 | `/cv/engineering/`, `/cv/ocean/`, `/cv/life/`, `/cv/foo/` (the 404 page) |
-| `CV3` | Overview page, and the back-link to it from each view | AC-17, AC-21 to AC-24, AC-30 to AC-38 | `/cv/` |
+| `CV2` | View pages and the site 404 page | AC-11 to AC-16, AC-18 to AC-20, AC-30 to AC-39 | `/cv/engineering/`, `/cv/ocean/`, `/cv/life/`, `/cv/foo/` (the 404 page) |
+| `CV3` | Overview page, and the back-link to it from each view | AC-17, AC-21 to AC-24, AC-30 to AC-39 | `/cv/` |
 | `CV4` | Visual baselines for all CV pages and the 404 page | AC-50, AC-51 | none |
 
 AC-17 (the `CV overview` back-link on view pages) is owned by `CV3`, not `CV2`, so that no build ever links to a page that does not exist yet.
@@ -279,5 +347,5 @@ AC-17 (the `CV overview` back-link on view pages) is owned by `CV3`, not `CV2`, 
 - The design-first phase (before any gate task) produces the approved look for `/cv/` and its baselines `cv-390.png` and `cv-1280.png`. `CV4` adds the view and 404 baselines with owner approval.
 - Section heading texts, view titles, the "Sample content", "CV overview", "Page not found" and empty-state texts are site chrome, not CV content, so they may be written in the page source.
 - The view-selection and page-structure contracts are deliberately concrete so that the test author, who reads only this spec, can write the acceptance tests without seeing any plan or code.
-- The home page is unchanged by this feature, and CV pages carry no site-wide navigation. Adding a link to `/cv/` from the home page is a separate decision, because it would change the home page's visual baselines.
+- The home page is unchanged by this feature. CV pages carry only a modest header with one link home (FR-015) and no other site navigation. Adding a link to `/cv/` from the home page is a separate decision, because it would change the home page's visual baselines.
 - The content file is assumed schema-valid. The existing content unit test (`tests/unit/content/`) enforces the schema; this feature adds no build-time validation.

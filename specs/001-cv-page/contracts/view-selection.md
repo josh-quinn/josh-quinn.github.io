@@ -1,43 +1,13 @@
 # Contract: view-selection module (`src/lib/cv.ts`)
 
-The public surface the pages and the CV1 acceptance tests depend on. It restates the spec's View-Selection Contract with types. The spec is authoritative if the two ever differ.
+**The contract is spec.md §View-Selection Contract.** It holds the exact exported TypeScript signatures and types, and their behaviour. This file does not restate them, so there is one source of truth. The test author sees only the spec, and the acceptance tests are type-checked against it by `astro check` in the gate's build step.
 
-```ts
-export const VIEWS: readonly ['engineering', 'ocean', 'life'];
-export type View = (typeof VIEWS)[number];
+## Implementation notes (plan side only)
 
-export const SECTION_ORDER: readonly [
-  'work', 'projects', 'education', 'certificates', 'awards', 'volunteer', 'interests', 'skills',
-];
-export type SectionKey = (typeof SECTION_ORDER)[number];
-
-export function isView(value: string): value is View;           // exact, case-sensitive
-export function entryTitle(section: SectionKey, entry: Entry): string; // primary field
-
-export interface SectionResult { key: SectionKey; entries: Entry[] }
-export function sectionsForView(resume: Resume, view: string): SectionResult[]; // throws Error if !isView(view)
-export function overviewSections(resume: Resume): SectionResult[];   // [] or [{ key: 'skills', entries }]
-```
-
-Additional exports the pages may use. They are not part of the acceptance contract; inner unit tests cover them:
-
-```ts
-export const VIEW_TITLES: Record<View, string>;            // Engineering, Ocean, Life
-export const SECTION_HEADINGS: Record<SectionKey, string>; // Work, Projects, ..., Volunteering, ..., Skills
-export function viewPath(view: View): string;              // '/cv/<view>/'
-export function allowedProfiles(basics: Basics): Profile[]; // GitHub and LinkedIn only, case-insensitive, in order
-// Added in CV2, so page logic stays unit-testable:
-export function entryDetails(section: SectionKey, entry: Entry): { lines: string[]; items: string[] };
-  // lines: present shown fields other than the title, in the spec's Shown fields order; items: highlights or keywords
-export function showPlaceholder(resume: Resume): boolean;  // true only when meta?.placeholder === true
-```
-
-## Behaviour guarantees
-
-1. Pure: no I/O, no globals, input never mutated (AC-09).
-2. A missing section key is `[]`. `meta` and `basics` are ignored by both section functions (AC-07).
-3. Output order: `SECTION_ORDER`, then content-file order (AC-02, AC-03).
-4. An entry is returned once per view it is tagged for (AC-04).
-5. Skills without `views` are in no view's result (AC-05).
-6. `sectionsForView` with a non-view throws `Error` with a message naming the value (AC-08).
-7. The module contains no content-file values (AC-24).
+1. **Input types are loose on purpose.** `Entry.views` is optional for every section, every `Resume` key is optional, and `entryTitle` / `entryDetails` take `section: string`. The pages may narrow internally, for example with `isView` or a `SectionKey` guard. Exported signatures must stay exactly as the spec writes them: narrowing them (for example making `views` required) breaks the acceptance tests' type check.
+2. **Pure.** No I/O, no globals, and input is never mutated (AC-09). Return the source entry objects themselves, not copies with changes.
+3. **Order.** `SECTION_ORDER`, then content-file order (AC-02, AC-03). Never iterate `Object.keys(resume)`.
+4. **Tagging.** An entry is in view V when `entry.views?.includes(V)` is true. Absent or empty `views` means no view (spec §Definitions).
+5. **Errors.** `sectionsForView` throws `Error` naming the value for a non-view (AC-08). `entryTitle` throws `Error` for a non-section key.
+6. **No content values in the module** (AC-24). Chrome strings such as section headings and view titles are fine.
+7. **Additional exports** (`VIEW_TITLES`, `SECTION_HEADINGS`, `viewPath`, `allowedProfiles` in CV1; `entryDetails` and `showPlaceholder` in CV2) are in the spec's code block too, so they have the same single source. Inner unit tests cover them (test list U5–U7, U26–U34).

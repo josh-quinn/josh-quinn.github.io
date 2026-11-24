@@ -1,6 +1,6 @@
 # Data Model: CV pages
 
-The single source is `src/content/resume.json`, validated by `src/content/resume.schema.json` (a JSON Resume subset plus `views`). This feature reads it and never writes it. Types below are the subset `src/lib/cv.ts` declares. Field names match the schema exactly.
+The single source is `src/content/resume.json`, validated by `src/content/resume.schema.json` (a JSON Resume subset plus `views`). This feature reads it and never writes it. The tables below describe the content, with field names exactly as in the schema. The TypeScript types `src/lib/cv.ts` exports are defined once, in spec.md §View-Selection Contract. They are looser than the schema at the input boundary: every key is optional, and `views` is optional on every section, so runtime fixtures type-check.
 
 ## Resume
 
@@ -36,7 +36,7 @@ The schema forbids `email` and `phone` (`false`).
 
 ## Section
 
-| Key | Heading | Primary field | Shown fields | `views` |
+| Key | Heading | Primary field | Shown fields | `views` in the schema (the module type always has it optional) |
 |---|---|---|---|---|
 | `work` | Work | `name` | `name`, `position`, `summary`, `highlights[]` | required |
 | `projects` | Projects | `name` | `name`, `description`, `highlights[]` | required |
@@ -51,7 +51,7 @@ Never shown, even when present: `startDate`, `endDate`, `date`, `work.location`,
 
 ## SectionResult (module output)
 
-`{ key: SectionKey; entries: Entry[] }`, where the entries are the source entry objects (deep-equal, not copied with changes) in content-file order. Lists of `SectionResult` are always in `SECTION_ORDER` and never hold an empty `entries` (AC-03).
+`SectionResult` (`{ readonly key: SectionKey; readonly entries: readonly Entry[] }`, spec §View-Selection Contract), where the entries are the source entry objects (deep-equal, not copied with changes) in content-file order. Lists of `SectionResult` are always in `SECTION_ORDER` and never hold an empty `entries` (AC-03).
 
 ## Selection rules
 
