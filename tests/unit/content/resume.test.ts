@@ -76,7 +76,6 @@ describe('resume.json', () => {
   });
 
   it('marks every organisation, institution, issuer and awarder as Example or Sample', () => {
-    const fields = ['name', 'organization', 'institution', 'issuer', 'awarder'];
     const orgs: string[] = [];
     for (const s of ['work', 'volunteer', 'education', 'certificates', 'awards']) {
       for (const e of resume[s] ?? []) {
@@ -84,9 +83,15 @@ describe('resume.json', () => {
         if (e[f]) orgs.push(e[f]);
       }
     }
-    expect(fields.length).toBeGreaterThan(0);
     expect(orgs.length).toBeGreaterThan(0);
     for (const o of orgs) expect(o).toMatch(/\b(Example|Sample)\b/);
+  });
+
+  it('only volunteer, projects and interests carry the ocean view', () => {
+    for (const s of SECTIONS) {
+      const hasOcean = (resume[s] ?? []).some((e: { views: string[] }) => e.views.includes('ocean'));
+      expect(hasOcean).toBe(['volunteer', 'projects', 'interests'].includes(s) ? true : false);
+    }
   });
 
   it('marks skills and interests as sample content', () => {

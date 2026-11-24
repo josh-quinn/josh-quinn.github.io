@@ -66,7 +66,6 @@
       "summary": "Sample role description.",
       "views": [
         "engineering",
-        "ocean",
         "life"
       ]
     }
@@ -124,7 +123,6 @@
       "name": "Sample Certificate D",
       "issuer": "Sample Training Body",
       "views": [
-        "ocean",
         "life"
       ]
     }
@@ -135,8 +133,7 @@
       "awarder": "Example Awards Panel",
       "summary": "A fictional award.",
       "views": [
-        "engineering",
-        "ocean"
+        "engineering"
       ]
     },
     {
