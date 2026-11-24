@@ -1,7 +1,7 @@
 /**
  * Run the AI eval suites with promptfoo, locked down (ADR 0003 and its Task 6 addendum).
  *
- *   tsx evals/run.ts critic | auditor | calibrate [--pairs <regex>]
+ *   tsx evals/run.ts critic | auditor | calibrate [--pairs <regex>] [--repeat <n>]
  *
  * `calibrate` runs both suites for every pair in evals/pairs.yaml and prints, per pair and
  * eval, the accuracy (cases classified as expected), total tokens and summed wall time. The
@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { captureReferences, REFERENCE_URLS, REFERENCE_WIDTHS } from '../scripts/reference-screens';
+import { prepareCriticCases } from '../tools/gate/ai-eval';
 
 const ROOT = process.cwd();
 const PROMPTFOO = join(ROOT, 'evals', 'node_modules', '.bin', 'promptfoo');
@@ -58,12 +59,12 @@ type PfResult = {
 
 export type Row = { pair: string; evalName: string; correct: number; total: number; errors: number; input: number; output: number; ms: number; cases: string[] };
 
-/** Per-pair stats from a promptfoo `--output` JSON file. */
+/** Per-pair stats from a promptfoo `--output` JSON file; repeats of a case are grouped with their score spread. */
 export function summarise(evalName: string, results: PfResult[]): Row[] {
-  const rows = new Map<string, Row>();
+  const rows = new Map<string, Row & { byCase: Map<string, { expected: string; got: string[]; scores: number[]; misses: number }> }>();
   for (const r of results) {
     const pair = r.provider?.label ?? r.provider?.id ?? '?';
-    const row = rows.get(pair) ?? { pair, evalName, correct: 0, total: 0, errors: 0, input: 0, output: 0, ms: 0, cases: [] };
+    const row = rows.get(pair) ?? { pair, evalName, correct: 0, total: 0, errors: 0, input: 0, output: 0, ms: 0, cases: [], byCase: new Map() };
     row.total++;
     const ok = r.success === true && r.gradingResult?.pass === true;
     if (ok) row.correct++;
@@ -71,17 +72,27 @@ export function summarise(evalName: string, results: PfResult[]): Row[] {
     row.input += r.response?.tokenUsage?.prompt ?? 0;
     row.output += r.response?.tokenUsage?.completion ?? 0;
     row.ms += r.latencyMs ?? 0;
-    let got = 'error';
+    const kase = String(r.vars?.case);
+    const c = row.byCase.get(kase) ?? { expected: String(r.vars?.expected), got: [], scores: [], misses: 0 };
     try {
       const o = JSON.parse(r.response?.output ?? '') as { passes?: boolean; score?: number };
-      got = `${o.passes ? 'pass' : 'fail'} ${o.score}`;
+      c.got.push(o.passes ? 'pass' : 'fail');
+      if (typeof o.score === 'number') c.scores.push(o.score);
     } catch {
-      // keep 'error'
+      c.got.push('error');
     }
-    row.cases.push(`${r.vars?.case}: want ${r.vars?.expected}, got ${got}${ok ? '' : ' ✗'}`);
+    if (!ok) c.misses++;
+    row.byCase.set(kase, c);
     rows.set(pair, row);
   }
-  return [...rows.values()];
+  return [...rows.values()].map(({ byCase, ...row }) => ({
+    ...row,
+    cases: [...byCase.entries()].map(([kase, c]) => {
+      const counts = ['pass', 'fail', 'error'].filter((k) => c.got.includes(k)).map((k) => `${k}×${c.got.filter((g) => g === k).length}`).join(' ');
+      const spread = c.scores.length ? `, scores ${Math.min(...c.scores)}-${Math.max(...c.scores)}` : '';
+      return `${kase}: want ${c.expected}, got ${counts}${spread}${c.misses ? ' ✗' : ''}`;
+    }),
+  }));
 }
 
 export function table(rows: Row[]): string {
@@ -92,11 +103,12 @@ export function table(rows: Row[]): string {
   return [head, ...body].join('\n');
 }
 
-function runSuite(suite: keyof typeof SUITES, pairs?: string): Row[] {
+function runSuite(suite: keyof typeof SUITES, pairs?: string, repeat = 1): Row[] {
   const name = SUITES[suite];
   const out = join(OUT, `${name}-results.json`);
   const args = ['eval', '-c', join(ROOT, 'evals', name, 'promptfooconfig.yaml'), '-o', out, '--no-cache', '--no-write', '--no-progress-bar', '--no-table', '-j', '3'];
   if (pairs) args.push('--filter-providers', pairs);
+  if (repeat > 1) args.push('--repeat', String(repeat));
   process.stderr.write(`evals: promptfoo ${name}${pairs ? ` (pairs ${pairs})` : ''}\n`);
   const r = spawnSync(PROMPTFOO, args, { cwd: join(ROOT, 'evals'), env: promptfooEnv(), stdio: ['ignore', 'inherit', 'inherit'] });
   // promptfoo exits 100 when some assertion failed; that is a result, not an error.
@@ -109,21 +121,31 @@ async function main(argv: string[]): Promise<number> {
   const [cmd] = argv;
   const i = argv.indexOf('--pairs');
   const pairs = i >= 0 ? argv[i + 1] : undefined;
+  const j = argv.indexOf('--repeat');
+  const repeat = j >= 0 ? Number(argv[j + 1]) : 1;
+  if (!Number.isInteger(repeat) || repeat < 1) {
+    console.error('evals: --repeat needs a positive integer');
+    return 2;
+  }
   if (!existsSync(PROMPTFOO)) {
     console.error('evals: promptfoo is not installed; run `npm ci --ignore-scripts --prefix evals` (see evals/README.md)');
     return 1;
   }
   const suites: (keyof typeof SUITES)[] = cmd === 'calibrate' ? ['critic', 'auditor'] : cmd === 'critic' || cmd === 'auditor' ? [cmd] : [];
   if (suites.length === 0) {
-    console.error('usage: tsx evals/run.ts critic | auditor | calibrate [--pairs <regex>]');
+    console.error('usage: tsx evals/run.ts critic | auditor | calibrate [--pairs <regex>] [--repeat <n>]');
     return 2;
   }
   mkdirSync(OUT, { recursive: true });
   if (suites.includes('critic')) {
+    // Near-miss cases screenshot the built home page; take every case's shots once, up front.
+    const build = spawnSync('npm', ['run', 'build', '--silent'], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
+    if (build.status !== 0) throw new Error('npm run build failed');
     const refs = await captureReferences({ urls: REFERENCE_URLS, widths: REFERENCE_WIDTHS, maxAgeHours: 24 });
     if (refs.note) console.error(`evals: ${refs.note}`);
+    await prepareCriticCases();
   }
-  const rows = suites.flatMap((s) => runSuite(s, pairs));
+  const rows = suites.flatMap((s) => runSuite(s, pairs, repeat));
   const md = table(rows.sort((a, b) => a.evalName.localeCompare(b.evalName) || a.pair.localeCompare(b.pair)));
   writeFileSync(join(OUT, cmd === 'calibrate' ? 'calibration.md' : `${SUITES[cmd as keyof typeof SUITES]}.md`), md + '\n');
   console.log(md);

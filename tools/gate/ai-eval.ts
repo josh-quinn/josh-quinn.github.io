@@ -11,10 +11,11 @@
  * `ai.<eval>` in ~/.config/jq-tools/gate/config.yaml.
  */
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadToolConfig } from '../lib/config';
+import type { Page } from '@playwright/test';
 import { runAgent, type AgentRun, type Tokens } from './ai-agent';
 
 export const EVALS = ['design-critic', 'auditor'] as const;
@@ -153,7 +154,9 @@ export function pagePath(id: string): string {
   return id === 'index' ? '/' : id === 'fonts' ? '/_fonts/' : `/${id}/`;
 }
 
-async function shootUrls(targets: { url: string; prefix: string }[]): Promise<string[][]> {
+type Target = { url: string; prefix: string; prepare?: (page: Page) => Promise<void> };
+
+async function shootUrls(targets: Target[]): Promise<string[][]> {
   const { openShooter } = await import('../../scripts/reference-screens');
   mkdirSync(SHOTS, { recursive: true });
   const shooter = await openShooter();
@@ -161,7 +164,7 @@ async function shootUrls(targets: { url: string; prefix: string }[]): Promise<st
     const out: string[][] = [];
     for (const t of targets) {
       const files = WIDTHS.map((w) => join(SHOTS, `${t.prefix}-${w}.png`));
-      for (let i = 0; i < WIDTHS.length; i++) await shooter.shoot(t.url, WIDTHS[i], files[i]);
+      for (let i = 0; i < WIDTHS.length; i++) await shooter.shoot(t.url, WIDTHS[i], files[i], t.prepare);
       out.push(files);
     }
     return out;
@@ -241,25 +244,73 @@ export function auditorCase(name: string): string {
   return read(`evals/auditor/cases/${name}.diff`).replaceAll('{{FAKE_EMAIL}}', fakeEmail());
 }
 
-/** Critic cases: `reference` judges the reference screenshots themselves; any other name is cases/<name>.html. */
+const CASES = join(ROOT, 'evals', 'design-critic', 'cases');
+const caseShots = (name: string) => WIDTHS.map((w) => join(SHOTS, `case-${name}-${w}.png`));
+
+/**
+ * Critic case kinds:
+ * - `reference`: the reference screenshots themselves, as the candidate;
+ * - `<name>.css` (+ optional `<name>.fragment.html`): a near miss, the real built home page with
+ *   one planted defect, injected as a style sheet (and HTML appended to `main`) before the shot;
+ * - `<name>.html`: a whole page.
+ */
+export function criticCaseNames(): string[] {
+  const files = readdirSync(CASES);
+  const pages = files.filter((f) => f.endsWith('.html') && !f.endsWith('.fragment.html')).map((f) => f.slice(0, -5));
+  const nearMisses = files.filter((f) => f.endsWith('.css')).map((f) => f.slice(0, -4));
+  return ['reference', ...pages, ...nearMisses];
+}
+
+/**
+ * Take every critic case's screenshots once, before the cases run (they may run in parallel).
+ * Near misses need a build (dist/).
+ */
+export async function prepareCriticCases(names: string[] = criticCaseNames()): Promise<void> {
+  mkdirSync(SHOTS, { recursive: true });
+  const ref = await referenceShots();
+  const targets: Target[] = [];
+  let server: { url: string; close: () => Promise<void> } | undefined;
+  try {
+    for (const name of names) {
+      if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`invalid case name ${JSON.stringify(name)}`);
+      if (name === 'reference') {
+        // A copy, so the candidate is judged on its own rather than recognised by its path.
+        ref.shots.files.forEach((f, i) => copyFileSync(f, caseShots(name)[i]));
+        continue;
+      }
+      const css = join(CASES, `${name}.css`);
+      const html = join(CASES, `${name}.html`);
+      if (existsSync(css)) {
+        if (!server) {
+          if (!existsSync(join(ROOT, 'dist', 'index.html'))) throw new Error('near-miss critic cases need a build; run `npm run build` first');
+          const { startServer } = (await import('../../scripts/serve-dist.mjs')) as { startServer: (d: string, p: number) => Promise<{ url: string; close: () => Promise<void> }> };
+          server = await startServer(join(ROOT, 'dist'), 0);
+        }
+        const style = readFileSync(css, 'utf8');
+        const fragmentFile = join(CASES, `${name}.fragment.html`);
+        const fragment = existsSync(fragmentFile) ? readFileSync(fragmentFile, 'utf8') : '';
+        targets.push({
+          url: server.url + '/',
+          prefix: `case-${name}`,
+          prepare: async (page) => {
+            await page.addStyleTag({ content: style });
+            if (fragment) await page.evaluate((f) => document.querySelector('main')?.insertAdjacentHTML('beforeend', f), fragment);
+          },
+        });
+      } else if (existsSync(html)) targets.push({ url: pathToFileURL(html).href, prefix: `case-${name}` });
+      else throw new Error(`no critic case ${name} in ${CASES}`);
+    }
+    if (targets.length) await shootUrls(targets);
+  } finally {
+    await server?.close();
+  }
+}
+
+/** Run one critic case; its screenshots are taken first if `prepareCriticCases` has not. */
 export async function criticCase(name: string, pair: Pair): Promise<EvalResult> {
   const ref = await referenceShots();
-  let candidate: Shots;
-  if (name === 'reference') {
-    // A copy, so the candidate is judged on its own rather than recognised by its path.
-    mkdirSync(SHOTS, { recursive: true });
-    const files = ref.shots.files.map((_f, i) => join(SHOTS, `case-reference-${WIDTHS[i]}.png`));
-    ref.shots.files.forEach((f, i) => copyFileSync(f, files[i]));
-    candidate = { label: 'candidate page', files };
-  } else {
-    if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`invalid case name ${JSON.stringify(name)}`);
-    const html = join(ROOT, 'evals', 'design-critic', 'cases', `${name}.html`);
-    if (!existsSync(html)) throw new Error(`no critic case ${name} (${html})`);
-    const files = existsSync(join(SHOTS, `case-${name}-390.png`)) && process.env.EVAL_RESHOOT !== '1'
-      ? WIDTHS.map((w) => join(SHOTS, `case-${name}-${w}.png`))
-      : (await shootUrls([{ url: pathToFileURL(html).href, prefix: `case-${name}` }]))[0];
-    candidate = { label: 'candidate page', files };
-  }
+  if (!caseShots(name).every((f) => existsSync(f)) || process.env.EVAL_RESHOOT === '1') await prepareCriticCases([name]);
+  const candidate: Shots = { label: 'candidate page', files: caseShots(name) };
   return ask('design-critic', pair, criticPrompt([candidate], ref.shots, ref.note));
 }
 

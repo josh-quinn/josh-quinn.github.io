@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { agentArgs, agentEnv, parseAgy, parseClaude, parseCopilot } from '../../../tools/gate/ai-agent';
+import { agentArgs, agentEnv, failureText, parseAgy, parseClaude, parseCopilot } from '../../../tools/gate/ai-agent';
 import { auditorCase, fakeEmail, finalVerdict, pagePath, parseReply, resolvePair, rubricThreshold } from '../../../tools/gate/ai-eval';
 import { isolateEnv, write } from '../gate/helpers';
 
@@ -103,6 +103,10 @@ describe('agent CLIs', () => {
   });
   it('rejects an unknown backend', () => {
     expect(() => agentArgs({ backend: 'gpt', model: 'x', prompt: 'p', cwd: '/r', tools: 'read' })).toThrow(/unknown AI backend/);
+  });
+  it("reports the CLI's own error text on a failed run", () => {
+    expect(failureText(JSON.stringify({ is_error: true, result: 'API Error: rate limited', usage: {} }), '')).toBe('API Error: rate limited');
+    expect(failureText('', 'line 1\nNot logged in\n')).toBe('line 1 | Not logged in');
   });
   it('strips proxy variables from the agent env', () => {
     expect(agentEnv({ HTTPS_PROXY: 'http://127.0.0.1:9', https_proxy: 'x', PATH: '/bin' })).toEqual({ PATH: '/bin' });

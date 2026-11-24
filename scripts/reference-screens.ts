@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, realpathSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { Browser } from '@playwright/test';
+import type { Browser, Page } from '@playwright/test';
 
 export const REFERENCE_URLS = ['https://pi.dev/'];
 export const REFERENCE_WIDTHS: [390, 1280] = [390, 1280];
@@ -19,7 +19,7 @@ export const MAX_SHOT_HEIGHT = 2000;
 
 export type CaptureOptions = { urls: string[]; widths: [390, 1280]; maxAgeHours: number };
 export type CaptureResult = { files: string[]; fromCache: boolean; note?: string };
-export type Shoot = (url: string, width: number, file: string) => Promise<void>;
+export type Shoot = (url: string, width: number, file: string, prepare?: (page: Page) => Promise<void>) => Promise<void>;
 export type CaptureDeps = {
   /** Cache directory; default `.cache/reference/` in the working directory. */
   dir?: string;
@@ -83,12 +83,16 @@ export async function captureReferences(opts: CaptureOptions, deps: CaptureDeps 
   return { files, fromCache: false };
 }
 
-/** One page at one width: light scheme, reduced motion, fonts loaded, cut at MAX_SHOT_HEIGHT. */
-export async function shootPage(browser: Browser, url: string, width: number, file: string): Promise<void> {
+/**
+ * One page at one width: light scheme, reduced motion (pages at rest), fonts loaded, cut at
+ * MAX_SHOT_HEIGHT. `prepare` can change the page before the shot (calibration near misses).
+ */
+export async function shootPage(browser: Browser, url: string, width: number, file: string, prepare?: (page: Page) => Promise<void>): Promise<void> {
   const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, colorScheme: 'light', reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
+    if (prepare) await prepare(page);
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     await page.screenshot({ path: file, fullPage: true, clip: { x: 0, y: 0, width, height: Math.min(height, MAX_SHOT_HEIGHT) }, animations: 'disabled' });
@@ -101,7 +105,7 @@ export async function shootPage(browser: Browser, url: string, width: number, fi
 export async function openShooter(): Promise<{ shoot: Shoot; close: () => Promise<void> }> {
   const { chromium } = await import('@playwright/test');
   const browser = await chromium.launch();
-  return { shoot: (url, width, file) => shootPage(browser, url, width, file), close: () => browser.close() };
+  return { shoot: (url, width, file, prepare) => shootPage(browser, url, width, file, prepare), close: () => browser.close() };
 }
 
 async function main(argv: string[]): Promise<number> {

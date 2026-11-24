@@ -126,6 +126,18 @@ export function parseCopilot(stdout: string, copilotHome = process.env.COPILOT_H
   return { text: answers[answers.length - 1].data!.content as string, tokens };
 }
 
+/** The CLI's own error text: a JSON `result`/`response`/`error` field when there is one, else the last lines. */
+export function failureText(stdout: string, stderr: string): string {
+  try {
+    const j = JSON.parse(stdout) as Record<string, unknown>;
+    const msg = j.result ?? j.response ?? j.error;
+    if (typeof msg === 'string' && msg.trim()) return msg.trim().slice(0, 400);
+  } catch {
+    // not one JSON object
+  }
+  return (stderr || stdout).trim().split('\n').slice(-3).join(' | ').slice(0, 400);
+}
+
 /** Run the CLI; rejects on a non-zero exit, a timeout, or output it cannot parse. */
 export function runAgent(c: AgentCall): Promise<AgentRun> {
   const args = agentArgs(c);
@@ -145,7 +157,7 @@ export function runAgent(c: AgentCall): Promise<AgentRun> {
       clearTimeout(timer);
       const stdout = out.join('');
       if (signal) return reject(new Error(`${c.backend} killed by ${signal} (timeout ${timeoutMs} ms?)`));
-      if (code !== 0) return reject(new Error(`${c.backend} exited ${code}: ${(err.join('') || stdout).trim().split('\n').slice(-3).join(' | ').slice(0, 400)}`));
+      if (code !== 0) return reject(new Error(`${c.backend} exited ${code}: ${failureText(stdout, err.join(''))}`));
       try {
         resolve(c.backend === 'claude' ? parseClaude(stdout) : c.backend === 'agy' ? parseAgy(stdout) : parseCopilot(stdout));
       } catch (e) {

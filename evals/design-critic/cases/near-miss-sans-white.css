@@ -1,0 +1,12 @@
+/* Near-miss case: the real home page with ONE defect. A system sans-serif body on a pure
+   white page (no paper, no grid). Expected: fail. Injected by tools/gate/ai-eval.ts. */
+:root {
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html {
+  background: #ffffff;
+}
+body::before,
+body::after {
+  display: none;
+}

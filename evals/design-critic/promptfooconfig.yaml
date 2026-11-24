@@ -1,4 +1,5 @@
-# Design critic calibration (spec 7.6): a generic page must fail, the reference must pass.
+# Design critic calibration (spec 7.6): a generic page and three near misses (the real home
+# page with one planted defect) must fail; the reference must pass.
 # Run through evals/run.ts (npm run eval:critic / eval:calibrate), never promptfoo directly:
 # run.ts sets the telemetry lock-down. The real prompt is built by tools/gate/ai-eval.ts.
 description: design-critic calibration
@@ -35,3 +36,11 @@ tests:
     vars: { case: generic-page, expected: fail }
   - description: the reference itself must pass
     vars: { case: reference, expected: pass }
+  - description: control, the real home page as built, must pass
+    vars: { case: home, expected: pass }
+  - description: near miss, sans-serif body on white
+    vars: { case: near-miss-sans-white, expected: fail }
+  - description: near miss, indigo/purple links and accents
+    vars: { case: near-miss-indigo, expected: fail }
+  - description: near miss, oversized headline and shadowed card grid
+    vars: { case: near-miss-hero-cards, expected: fail }

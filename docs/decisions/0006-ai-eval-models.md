@@ -41,6 +41,30 @@ Earlier runs, for the record:
 - Copilot completed all four auditor cases in the first run (4/4, 117 s, 443k input tokens).
 - Copilot's input counts are high because its agent reads many repository files on its own.
 
+## Discrimination check (fix round 1, run 2026-11-24)
+
+The first critic table proved little: two easy cases, and the placeholder home page scored like the reference. Three changes followed:
+
+- **More cases.** Three near misses were added: the real built home page with one planted defect each (`evals/design-critic/cases/near-miss-*.css`, injected before the screenshot). There is also a control, `home`: the same page with nothing injected.
+- **A stricter rubric.** The shadow rule matches `DESIGN.md`. There are no drop shadows: a single faint shadow costs 10 points, and heavy or repeated shadows are a never-list item. Gradients are judged as decorative (never) or structural (the paper grid and vignette, allowed).
+- **Repeats.** The picked pair ran every case 3 times (`npm run eval:critic -- --pairs claude:sonnet --repeat 3`). This was after the redesign (technical paper, islands, motion, smaller body text).
+
+| Case | Expected | Result (3 runs) | Score spread |
+|---|---|---|---|
+| `home` (control) | pass | pass ×3 | 93-93 |
+| `reference` | pass | pass ×3 | 84-86 |
+| `generic-page` | fail | fail ×3 | 2-2 |
+| `near-miss-sans-white` (sans-serif body, white page) | fail | fail ×3 | 55-55 |
+| `near-miss-indigo` (indigo/purple links and accents) | fail | fail ×3 | 55-55 |
+| `near-miss-hero-cards` (64px headline, shadowed card grid) | fail | fail ×3 | 52-55 |
+
+- **Accuracy 18/18.** Tokens: 476,316 in and 11,700 out; 172 s of summed latency.
+- **One page, one defect.** Each defect alone takes the same page from 93 down to 52-55.
+- **Stable spread:** at most 3 points within a case.
+- **Threshold confirmed at 80.** Every pass scored at least 84 and every fail at most 55, so any threshold from 56 to 84 classifies the data. 80 is kept because it matches the role prompt (`agents/src/design-critic.md`). The thinnest margin is the reference, 4 points above it; it loses 10 points for its one soft shadow under the stricter rule.
+- **Transient errors.** An earlier attempt at this run had 8 transient errors: the claude CLI exited with no tokens used, while the same call succeeded minutes later. `tools/gate/ai-agent.ts` now reports the CLI's own error text.
+- **Scope.** Only the picked pair was re-run; the other pairs' rows above predate the near misses.
+
 ## Decision
 
 | Eval | Backend | Model | Why |
@@ -52,7 +76,7 @@ Both picks are written to `~/.config/jq-tools/gate/config.yaml` as `ai.design-cr
 
 ## Consequences
 
-- With one run per case, these numbers show that a pair works, not how much its results vary. The clean auditor patch (88) and the reference (92) clear the threshold of 80 by a modest margin. If a check flips between runs, re-run calibration with repeats before changing the rubric.
+- For the picked critic the spread is now measured (3 runs, at most 3 points). The auditor rows are still one run per case: the clean patch (88) clears 80 by a modest margin. If a check flips between runs, re-run with `--repeat 3` before changing a rubric.
 - `claude:haiku` is not suitable for the critic: it treats the reference's own look (one soft shadow, a centred headline) as never-list items. `copilot:default` is accurate on the critic, but one stalled call makes it a poor default for a gate.
 - Re-run `npm run eval:calibrate` whenever a rubric, a role prompt, `DESIGN.md` or a model changes, and update this record and the config.
 - The site never needs this on CI: AI checks are local only.
