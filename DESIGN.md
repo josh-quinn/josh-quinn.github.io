@@ -56,7 +56,9 @@ Contrast: `--ink`, `--muted` and `--link` all meet WCAG AA for body text on `--p
 
 ## Layout
 
-- One narrow column, `--measure` 36rem (about 65 characters), centred, with `--gutter` side padding (1rem, 2rem from 48rem up).
+- One narrow column, `--measure` 34rem (about 70 characters), centred, with `--gutter` side padding (1rem, 2rem from 48rem up).
+- Pages with a nav bar or a split use the wide container (`.page-wide`, `--measure-wide` 60rem). Text inside it keeps `--measure` (`.measure`), left-aligned.
+- **Split** (`.split`): from 64rem (1024px) up, two columns: a media island on the left (`.split-media`, sticky) and a column of prose sections on the right (`.split-prose`, `--measure` wide, italic section headings at `--text-section`). Below 64rem it stacks into one column, media first.
 - Compact vertical rhythm from the spacing scale; sections separated by a hairline and `--space-7`, not by boxes.
 - Modest headers: a mono label, then a small italic heading. No hero.
 - Lists are plain.
@@ -67,9 +69,20 @@ Islands are panels that sit on the grid, like the terminal and preview panels on
 
 - a raised paper surface (`--paper-raised`), a hairline border (`--border`), a 4px radius (`--radius-2`), and **no drop shadow**;
 - an optional bar at the top with a mono label, separated by a hairline;
+- an optional caption strip at the bottom (`.island-foot`) with a mono label, separated by a hairline;
 - a terminal island (`.terminal`) has a cool panel body (`--paper-cool`), mono text and a blinking block cursor.
 
 Use them for small, self-contained things (a terminal snippet, a set of facts), one or two to a page, never as a grid of cards.
+
+## Components
+
+All in `src/styles/components.css`: CSS only, tokens only, no client JS.
+
+- **Announcement bar** (`.announce`, an `aside` first in `body`): a thin full-width strip at the very top, on `--paper-cool` over a hairline, with one short centred italic serif line at `--text-detail`. At most one per page.
+- **Mono nav bar** (`header.navbar`): a row over a hairline. The first link (`.navbar-brand`) is the site name; other links sit in a `ul`. All are Departure Mono, uppercase, at `--text-label`, tracked `--tracking-label`, not underlined, in `--ink-soft` (`--ink` for the brand, on hover and for `aria-current="page"`). It links only to pages that exist in the build.
+- **Bracket link** (`a.bracket`): `[ LIKE THIS ]`. Mono, uppercase, tracked, on a faint raised fill (`--paper-raised`) with a hairline border and a 2px radius, no shadow. The brackets are generated content with empty alt text, so they are not part of the link's accessible name. Hover and `aria-current="page"` darken the text and the border.
+- **Split with a sticky media island**: see "Layout". The media island usually has a bar on top, a terminal body and a caption strip at the bottom.
+- **Typed line** (`.typed`, with `--chars` set to its length): a terminal command types itself once, then its output (`.typed-out`) appears. At rest, and under reduced motion, it is plain text.
 
 ## Motion
 
@@ -79,20 +92,21 @@ CSS only: no client JavaScript on any page (CV pages forbid it, and the rest of 
 - **Focus-in:** the `h1` comes into focus from a slight blur.
 - **Panel enter:** islands fade in and settle (a small rise and scale).
 - **Cursor:** the terminal cursor blinks (`--blink` 1.1s, stepped).
+- **Typed line:** a `.typed` terminal command types itself once (`--duration-type` 1.2s, one step per character) after the panel enters; its `.typed-out` output then appears.
 - Durations: `--duration-enter` 700ms with `--ease-out`; `--duration-fast` 150ms for colour fades on links.
 
 ## Tokens
 
 All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unlimited/declaration-strict-value` for colour, font family, font size, margin, padding, gap and box-shadow; `color-no-hex`; gradient functions only in `paper.css`). See ADR 0007.
 
-- **Type scale:** `--text-label` 11/18rem, `--text-small` 0.84rem, `--text-detail` 0.95rem, `--text-body` 1rem, `--text-h3` 1.22rem, `--text-h2` 1.5rem, `--text-h1` 1.875rem. Weights `--weight-body` 450, `--weight-strong` 600. Leading `--leading-body` 1.55, `--leading-tight` 1.2. Tracking `--tracking-label` 0.12em.
+- **Type scale:** `--text-label` 11/18rem, `--text-small` 0.84rem, `--text-detail` 0.95rem, `--text-body` 1rem, `--text-h3` 1.22rem, `--text-h2` 1.5rem, `--text-h1` 1.875rem, `--text-section` 2rem (split section headings). Weights `--weight-body` 450, `--weight-strong` 600. Leading `--leading-body` 1.55, `--leading-tight` 1.2. Tracking `--tracking-label` 0.12em.
 - **Families:** `--font-serif` (the pick), `--font-serif-brygada`, `--font-serif-newsreader`, `--font-serif-source` (the candidates), `--font-mono`; roles `--font-body`, `--font-display`, `--font-ui`.
-- **Spacing scale:** `--space-1` 0.25rem, `--space-2` 0.5rem, `--space-3` 0.75rem, `--space-4` 1rem, `--space-5` 1.5rem, `--space-6` 2rem, `--space-7` 3rem, `--space-8` 4rem; `--measure` 34rem; `--gutter`.
+- **Spacing scale:** `--space-1` 0.25rem, `--space-2` 0.5rem, `--space-3` 0.75rem, `--space-4` 1rem, `--space-5` 1.5rem, `--space-6` 2rem, `--space-7` 3rem, `--space-8` 4rem; `--measure` 34rem; `--measure-wide` 60rem; `--gutter`.
 - **Colours:** the table above. **Paper:** `--grid-cell` 20px, `--grid-minor-step`, `--grid-cross-arm`, `--grid-minor`, `--grid-major`, `--grid-cross`, `--paper-vignette`, `--paper-top-wash` and `--paper-fade`.
 - **Borders:** `--border-width` 1px, `--border` (hairline in `--line`), `--border-strong`.
 - **Radii:** `--radius-0` 0, `--radius-1` 2px, `--radius-2` 4px. Nothing rounder.
 - **Shadow:** `--shadow-focus` only (the focus ring). **No drop shadows**: islands and panels are separated by hairline borders, never by shadows. For the design critic, a single faint shadow on one panel is a deduction (10 points). Heavy shadows, shadows on several panels, or shadowed cards are on the never list.
-- **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--duration-enter` 700ms, `--stagger` 90ms, `--rise` 6px, `--blink` 1.1s, `--ease`, `--ease-out`. Nothing animates under `prefers-reduced-motion: reduce`.
+- **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--duration-enter` 700ms, `--stagger` 90ms, `--rise` 6px, `--blink` 1.1s, `--duration-type` 1.2s, `--ease`, `--ease-out`. Nothing animates under `prefers-reduced-motion: reduce`.
 
 ## Never
 

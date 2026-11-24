@@ -1,0 +1,193 @@
+/*
+ * Page components (DESIGN.md "Components"): announcement bar, mono nav bar, bracket links,
+ * the wide container and the two-column split with a sticky media island, the island's
+ * bottom caption strip and a typed terminal line. Tokens only (stylelint); CSS only; no
+ * motion under prefers-reduced-motion.
+ */
+
+/* Announcement bar: a thin full-width strip at the very top, one short italic serif line. */
+.announce {
+  margin: 0;
+  padding: var(--space-2) var(--gutter);
+  border-bottom: var(--border);
+  background-color: var(--paper-cool);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-detail);
+  font-style: italic;
+  line-height: var(--leading-tight);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.announce p {
+  margin: 0;
+  text-align: inherit;
+}
+
+/* Wide container: the nav bar and a split use the wide measure; text inside keeps --measure. */
+.page-wide {
+  max-width: calc(var(--measure-wide) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: 0 var(--gutter) var(--space-8);
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+/* Mono nav bar: uppercase, tracked Departure Mono links over a hairline. */
+.navbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 var(--space-7);
+  padding: var(--space-4) 0 var(--space-3);
+  border-bottom: var(--border);
+}
+
+.navbar ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navbar li {
+  margin: 0;
+}
+
+.navbar a {
+  color: var(--ink-soft);
+  font-family: var(--font-ui);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-body);
+  text-decoration-line: none;
+  text-transform: uppercase;
+}
+
+.navbar .navbar-brand,
+.navbar a:hover,
+.navbar a[aria-current="page"] {
+  color: var(--ink);
+}
+
+/* Bracket link: [ LIKE THIS ]. Mono, uppercase, a faint raised fill and a hairline border.
+ * The brackets are generated with empty alt text, so they are not part of the link's name. */
+.bracket {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-1);
+  background-color: var(--paper-raised);
+  color: var(--ink-soft);
+  font-family: var(--font-ui);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-body);
+  text-decoration-line: none;
+  text-transform: uppercase;
+  transition:
+    color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+.bracket::before {
+  margin-right: var(--space-2);
+  color: var(--muted);
+  content: "[" / "";
+}
+
+.bracket::after {
+  margin-left: var(--space-2);
+  color: var(--muted);
+  content: "]" / "";
+}
+
+.bracket:hover,
+.bracket[aria-current="page"] {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+/* Two-column split: a media island (left, sticky) beside a column of prose sections (right).
+ * One column below 64rem (1024px), media first. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  margin: var(--space-7) 0 0;
+}
+
+.split-prose > section + section {
+  margin-top: var(--space-6);
+}
+
+.split-prose h2 {
+  font-size: var(--text-section);
+}
+
+@media (min-width: 64rem) {
+  .split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--measure));
+    gap: var(--space-7);
+  }
+
+  .split-prose > section + section {
+    margin-top: var(--space-7);
+  }
+
+  .split-media .island {
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
+/* An island's bottom caption strip, the counterpart of .island-bar. */
+.island-foot {
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--border);
+}
+
+.island-foot .label {
+  margin: 0;
+}
+
+/* A typed terminal line: set --chars to its length; it types itself once, then the output
+ * (.typed-out) appears. At rest, and under reduced motion, it is plain text. */
+.typed {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes type {
+    from {
+      width: 0;
+    }
+  }
+
+  @keyframes appear {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .typed {
+    width: calc(var(--chars, 1) * 1ch);
+    animation: type var(--duration-type) steps(var(--chars, 1)) both;
+    animation-delay: var(--duration-enter);
+  }
+
+  .typed-out {
+    animation: appear var(--duration-fast) var(--ease) both;
+    animation-delay: calc(var(--duration-enter) + var(--duration-type));
+  }
+}
