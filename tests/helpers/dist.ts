@@ -14,5 +14,5 @@ export function htmlFiles(dir = distDir): string[] {
 /** The URL path a built file is served at: dist/index.html -> /, dist/a/index.html -> /a/, dist/404.html -> /404.html. */
 export function urlPathOf(file: string, dir = distDir): string {
   const rel = relative(dir, file).split(sep).join('/');
-  return '/' + (rel.endsWith('index.html') ? rel.slice(0, -'index.html'.length) : rel);
+  return '/' + (rel === 'index.html' || rel.endsWith('/index.html') ? rel.slice(0, -'index.html'.length) : rel);
 }

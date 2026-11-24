@@ -31,7 +31,9 @@ Option 3.
 
 ## Enforcement
 
-`tests/smoke/design.spec.ts`, run by the CI `e2e` job (`npm run test:e2e`, after `npm run build`), asserts on the built `dist/` HTML:
+`tests/smoke/design.spec.ts`, run by the CI `e2e` job (`npm run test:e2e`, after `npm run build`), inspects the built `dist/` HTML in a real DOM (a Playwright context with JavaScript disabled, not a regex):
 
-- every page except `dist/index.html` has no `<script>` element and no inline `on*=` event-handler attribute;
-- `dist/index.html` has at most one `<script>`, which is `type="module"`, and no inline `on*=` handler.
+- every page except `dist/index.html` has no `<script>` element;
+- no page has an attribute whose name starts with `on`, a `javascript:` URL in `href`, `action`, `formaction` or `src`, or an `iframe[srcdoc]`;
+- `dist/index.html` has at most one `<script>`, which is `type="module"` and either inline or with a first-party `src` (no scheme, no `//` prefix);
+- built `.js` files exist only under `dist/_astro/`.

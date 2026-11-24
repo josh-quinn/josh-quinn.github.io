@@ -1,33 +1,83 @@
-import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
-import { htmlFiles, urlPathOf } from '../helpers/dist';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
+import { expect, test, type Page } from '@playwright/test';
+import { distDir, htmlFiles, urlPathOf } from '../helpers/dist';
 
 // DESIGN.md: technical paper, islands, CSS-only motion (none under reduced motion).
 // Client JS policy (docs/decisions/0008-home-terminal-js.md): only the home page may ship
 // one first-party module script, for the terminal. Every other page is JS-free.
 
-const inlineHandler = /<[^>]+\son[a-z]+\s*=/i;
+/**
+ * Inspect built HTML through a real DOM (a context with JavaScript disabled, so nothing in the
+ * page can run). Regexes over markup are evadable (`<a/onclick=x>`, a `>` inside a value).
+ */
+type Findings = { scripts: { type: string; src: string; inline: boolean }[]; problems: string[] };
 
-test('no built page except the home page ships client JavaScript', () => {
-  const files = htmlFiles();
-  expect(files.length).toBeGreaterThan(0);
-  const others = files.filter((f) => urlPathOf(f) !== '/');
-  expect(others.length).toBeGreaterThan(0);
-  for (const f of others) {
-    const html = readFileSync(f, 'utf8');
-    expect(html, `${f} has a <script>`).not.toMatch(/<script\b/i);
-    expect(html, `${f} has an inline on* handler`).not.toMatch(inlineHandler);
-  }
-});
+async function inspect(page: Page, html: string): Promise<Findings> {
+  await page.setContent(html, { waitUntil: 'domcontentloaded' });
+  return page.evaluate(() => {
+    const problems: string[] = [];
+    const scripts = [...document.querySelectorAll('script')].map((s) => ({
+      type: s.getAttribute('type') ?? '',
+      src: s.getAttribute('src') ?? '',
+      inline: !s.hasAttribute('src'),
+    }));
+    for (const el of document.querySelectorAll('*')) {
+      for (const name of el.getAttributeNames()) {
+        if (/^on/i.test(name)) problems.push(`<${el.localName}> has event-handler attribute ${name}`);
+      }
+      for (const name of ['href', 'action', 'formaction', 'src']) {
+        const v = el.getAttribute(name);
+        if (v !== null && /^javascript:/i.test(v.trim())) problems.push(`<${el.localName} ${name}> is a javascript: URL`);
+      }
+    }
+    if (document.querySelector('iframe[srcdoc]')) problems.push('iframe with srcdoc');
+    return { scripts, problems };
+  });
+}
 
-test('the home page ships at most one module script and no inline handlers', () => {
-  const home = htmlFiles().find((f) => urlPathOf(f) === '/');
-  expect(home, 'dist/index.html is built').toBeTruthy();
-  const html = readFileSync(home!, 'utf8');
-  const scripts = html.match(/<script\b[^>]*>/gi) ?? [];
-  expect(scripts.length, 'at most one <script> on the home page').toBeLessThanOrEqual(1);
-  for (const s of scripts) expect(s, 'the only script is type="module"').toMatch(/\btype=["']?module["']?/i);
-  expect(html, 'home page has an inline on* handler').not.toMatch(inlineHandler);
+test.describe('client JavaScript policy', () => {
+  // JS disabled: setContent parses the markup without executing anything in it.
+  test.use({ javaScriptEnabled: false });
+
+  test('no built page except the home page ships client JavaScript', async ({ page }) => {
+    const files = htmlFiles();
+    expect(files.length).toBeGreaterThan(0);
+    const others = files.filter((f) => urlPathOf(f) !== '/');
+    expect(others.length).toBeGreaterThan(0);
+    for (const f of others) {
+      const { scripts, problems } = await inspect(page, readFileSync(f, 'utf8'));
+      expect(scripts, `${f} has a <script>`).toEqual([]);
+      expect(problems, f).toEqual([]);
+    }
+  });
+
+  test('the home page ships at most one first-party module script and nothing else', async ({ page }) => {
+    const home = htmlFiles().find((f) => urlPathOf(f) === '/');
+    expect(home, 'dist/index.html is built').toBeTruthy();
+    const { scripts, problems } = await inspect(page, readFileSync(home!, 'utf8'));
+    expect(scripts.length, 'at most one <script> on the home page').toBeLessThanOrEqual(1);
+    for (const s of scripts) {
+      expect(s.type, 'the only script is type="module"').toBe('module');
+      // Astro may inline a small module (no src) or emit /_astro/*.js. A src must be first-party:
+      // no scheme and no protocol-relative "//" prefix.
+      if (!s.inline) expect(s.src, 'module src is first-party').not.toMatch(/^\s*(?:[a-z][a-z0-9+.-]*:|\/\/)/i);
+    }
+    expect(problems, 'home page').toEqual([]);
+  });
+
+  test('built JavaScript files live only under the Astro assets directory', () => {
+    const stray: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (/\.m?js$/i.test(e.name) && !relative(distDir, full).startsWith('_astro' + sep)) stray.push(full);
+      }
+    };
+    walk(distDir);
+    expect(stray).toEqual([]);
+  });
 });
 
 test.describe('home page', () => {
