@@ -18,6 +18,7 @@ Compact, tidy and quiet, on technical paper. Text blocks are neat and justified-
 - **Body and headings: one old-style serif** with the feel of the Plantin family (robust, slightly condensed, large x-height). This site uses a free (OFL) serif chosen from a side-by-side comparison (see "Fonts"). Body weight is a touch above regular (450).
 - **Display headings: the same serif, in italic**, as on lefos.com. `h1` and `h2` are italic; `h3` is upright semibold. Headings stay modest: `h1` is 1.875rem (about 34px), about 1.9 times the body size.
 - **UI, labels, metadata and terminal-style boxes: Departure Mono**, falling back to Commit Mono, then the system mono. Labels are 11px, uppercase, tracked at 0.12em.
+- **Terminal screens: Commit Mono** (`--font-term`) at `--text-term` (0.8rem), line height 1.5. Departure Mono stays on the terminal's caption bar and strip.
 - Root size 18px. **Body 1rem (18px) at every width**: normal paragraph text stays a comfortable reading size, not a display size. Line height 1.55. Paragraphs are justified with hyphenation from 48rem up, and ragged-right on narrow screens (justifying a short line opens rivers). `text-wrap: pretty` on body text, `balance` on headings.
 
 ## Colour
@@ -72,7 +73,7 @@ Islands are panels that sit on the grid, like the terminal and preview panels on
 - an optional caption strip at the bottom (`.island-foot`) with a mono label, separated by a hairline;
 - a terminal island (`.terminal`) has a cool panel body (`--paper-cool`), mono text and a blinking block cursor.
 
-Use them for small, self-contained things (a terminal snippet, a set of facts), one or two to a page, never as a grid of cards.
+Use them for small, self-contained things (a terminal snippet, a set of facts), one or two to a page, never as a grid of cards. The home page's story terminals are one island in effect: in story mode they share one cell and only one shows at a time; in the static layout each pane sits beside its own chapter, never in a grid.
 
 ## Components
 
@@ -83,6 +84,18 @@ All in `src/styles/components.css`: CSS only, tokens only. The one JavaScript ex
 - **Bracket link** (`a.bracket`): `[ LIKE THIS ]`. Mono, uppercase, tracked, on a faint raised fill (`--paper-raised`) with a hairline border and a 2px radius, no shadow. The brackets are generated content with empty alt text, so they are not part of the link's accessible name. Hover and `aria-current="page"` darken the text and the border.
 - **Split with a sticky media island**: see "Layout". The media island usually has a bar on top, a terminal body and a caption strip at the bottom.
 - **Typed line** (`.typed`, with `--chars` set to its length): a terminal command types itself once, then its output (`.typed-out`) appears. At rest, and under reduced motion, it is plain text.
+- **Terminal** (`src/components/Terminal.astro`, styles in `src/styles/terminal.css`): a light terminal island, as on the reference.
+  - **Markup.** A `figure.island.term` with an `aria-label`:
+    - a caption bar (`figcaption.island-bar.t-bar`): a mono label title, a 2px `--term-blue` rule on the left and a live dot;
+    - a screen (`.t-screen`) of steps, each a `kbd.t-cmd` command after an `aria-hidden` `$` and a `samp.t-out` of lines, with tones `.t-dim`, `.t-green`, `.t-red`, `.t-amber`, `.t-blue` and `.t-bold`;
+    - a caption strip (`.island-foot.t-foot`): a mono label and, with JS, a `[ click to type ]` hint.
+  - **Content.** Every transcript is printed at build time by the canned session in `src/lib/terminal.ts` from `src/content/terminal.json`, the one data file for terminal content. It is real DOM text, so the final transcript is there without JS and under reduced motion. Pixel scenes are inline SVG (`PixelScene.astro`, 24x18 maps, `role="img"` with alt text, `--px-*` fills).
+  - **Layouts.**
+    - *Standalone:* one pane on its own (the home page's "try it" terminal).
+    - *Beat:* a pane in a `.split-media` beside its `.split-prose`, sticky within its row. In `.split.story` this is the static layout from 64rem up: each pane sits beside its own chapter.
+    - *Story* (`.split.story`, scroll-driven, see "Motion"): the panes share one sticky cell in the left column. The first starts centred over both columns and slides left as the page scrolls; each chapter's view timeline (`--ch-<row>`) shows its own pane and types its commands. Each chapter's text stays sticky beside it.
+    - Below 64rem every pane sits inline above its prose, never sticky.
+  - **Interactive layer** (home page only, ADR 0008): `src/scripts/terminal.ts` lets a reader click a pane, or press Enter on it, to type. It uses a visually hidden label on the input, an `aria-live="polite"` log, Esc or Tab to leave, and the site's focus ring.
 
 ## Motion
 
@@ -94,6 +107,8 @@ CSS only. The only client JavaScript on the site is the home-page terminal's inp
 - **Cursor:** the terminal cursor blinks (`--blink` 1.1s, stepped).
 - **Typed line:** a `.typed` terminal command types itself once (`--duration-type` 1.2s, one step per character) after the panel enters; its `.typed-out` output then appears.
 - Durations: `--duration-enter` 700ms with `--ease-out`; `--duration-fast` 150ms for colour fades on links.
+- **Terminal typing:** the on-load pane types each command by time (`--term-char` 70ms a character, `steps(n, jump-start)`), then shows its output. Other panes type as their chapter scrolls (`--at`, the step's place in the chapter), and pixel scenes print with a stepped wipe.
+- **Terminal story:** scroll-driven (`animation-timeline: scroll()` and `view()`, `timeline-scope`). It applies only under `@supports (animation-timeline: view()) and (timeline-scope: --a)`, with motion allowed and at 64rem or wider; otherwise the static beat layout applies. `steps()` uses `jump-start`, because scroll-driven animations stop just short of 100%. The page-scroll timeline is set through a custom property (`--t-page`), so the CSS minifier cannot fold it into the `animation` shorthand.
 
 ## Tokens
 
@@ -106,6 +121,8 @@ All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unl
 - **Borders:** `--border-width` 1px, `--border` (hairline in `--line`), `--border-strong`.
 - **Radii:** `--radius-0` 0, `--radius-1` 2px, `--radius-2` 4px. Nothing rounder.
 - **Shadow (this site's rule):** `--shadow-focus` only (the focus ring). This site's pages use **no drop shadows**: islands and panels are separated by hairline borders, never by shadows. How the design critic scores a shadow on a candidate page is set in `evals/design-critic/rubric.md`.
+- **Terminal:** `--term-bg` (= `--paper-cool`), `--term-fg` `#394352` (8.8:1), `--term-dim` `#5d636b` (5.4:1), `--term-green` `#33684f` (5.7:1), `--term-red` `#962a3e` (6.9:1), `--term-amber` `#7d6206` (5.1:1), `--term-blue` (= `--link`, 5.7:1), `--term-bar` `#e9edf0`, `--term-foot` (= `--paper-raised`), `--term-cursor`. Every text colour meets AA (at least 4.5:1, ratios on `--term-bg`) on the bar, the screen and the strip. Also `--font-term`, `--text-term` 0.8rem, `--text-term-small` 0.72rem, `--leading-term` 1.5, `--term-h` (the story pane's height, `clamp(22rem, 100vh - 8rem, 28rem)`), `--term-char` 70ms and `--term-story-gap` (= `--space-7`). The story container `.page-story` is 72rem wide.
+- **Pixel scenes:** `--px-*` (sky, cloud, sun, rose, peach, stone, stone-dark, lamp, ink, cream, wood, wood-dark, teal, blue, grass, grass-dark, orange, snow). These are soft pastels, decorative only and never used for text. None is purple.
 - **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--duration-enter` 700ms, `--stagger` 90ms, `--rise` 6px, `--blink` 1.1s, `--duration-type` 1.2s, `--ease`, `--ease-out`. Nothing animates under `prefers-reduced-motion: reduce`.
 
 ## Never
