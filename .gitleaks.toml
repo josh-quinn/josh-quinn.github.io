@@ -43,6 +43,14 @@ regexes = [
 ]
 
 [[rules.allowlists]]
+description = "Digit-only stretches of a canonical UUID (8-4-4-4-12 hex, e.g. a session id). RE2 has no lookaround, so this matches the shapes the phone rule can capture inside one: the tail of the first group, then 4-digit groups, ending at the 12-digit last group or at a group that is not all digits. A phone number next to a UUID is a separate or longer match and is still reported."
+regexTarget = "match"
+regexes = [
+  '''^\d{1,8}(-\d{4}){1,3}-\d{12}$''',
+  '''^\d{1,8}(-\d{4}){3}$''',
+]
+
+[[rules.allowlists]]
 description = "Vendored spec-kit scaffolding (file hashes in manifests, timestamp examples, integer limits in scripts) and one sha256 fragment in ADR 0002. Path-scoped to generated spec-kit files; the constitution and specs are still scanned."
 condition = "OR"
 paths = [

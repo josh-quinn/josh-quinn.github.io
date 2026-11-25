@@ -11,6 +11,28 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx \"$CLAUDE_PROJECT_DIR/tools/capture/capture.ts\" --event PreCompact --agent claude",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx \"$CLAUDE_PROJECT_DIR/tools/capture/capture.ts\" --event SessionEnd --agent claude",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
