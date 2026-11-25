@@ -97,6 +97,46 @@
   --duration-type: 1.2s; /* a typed terminal line, one step per character */
   --ease: ease;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Terminal (terminal.css, DESIGN.md "Terminal"): a light terminal on the cool panel. Every
+   * text colour meets WCAG AA (4.5:1) on --term-bg, --term-bar and --term-foot. */
+  --term-bg: var(--paper-cool); /* (ref) screen */
+  --term-fg: #394352; /* (ref) text, 8.8:1 */
+  --term-dim: #5d636b; /* secondary output, 5.4:1 */
+  --term-green: #33684f; /* labels, "added", 5.7:1 */
+  --term-red: #962a3e; /* errors, 6.9:1 */
+  --term-amber: #7d6206; /* in progress, 5.1:1 */
+  --term-blue: var(--link); /* prompt, caption rule, live dot, 5.7:1 */
+  --term-bar: #e9edf0; /* caption bar */
+  --term-foot: var(--paper-raised); /* caption strip */
+  --term-cursor: var(--term-fg);
+  --font-term: "Commit Mono", ui-monospace, Menlo, Consolas, monospace;
+  --text-term: 0.8rem;
+  --text-term-small: 0.72rem;
+  --leading-term: 1.5;
+  --term-h: clamp(22rem, calc(100vh - 8rem), 28rem); /* the sticky story pane's height */
+  --term-char: 70ms; /* one typed character */
+  --term-story-gap: var(--space-7); /* the story's column gap; the first pane's centring uses it */
+
+  /* Pixel scenes (the journey demo): soft pastels that sit on the paper. Decorative only. */
+  --px-sky: #d7e6ee;
+  --px-cloud: #f8f6f1;
+  --px-sun: #f4d68c;
+  --px-rose: #f2cfc8;
+  --px-peach: #f5c49c;
+  --px-stone: #d3cdc4;
+  --px-stone-dark: #a39c93;
+  --px-lamp: #f8e3a0;
+  --px-ink: #4d5868;
+  --px-cream: #f1e3c2;
+  --px-wood: #c19e80;
+  --px-wood-dark: #94735c;
+  --px-teal: #96d0c5;
+  --px-blue: #c4d4ea;
+  --px-grass: #bfd9a8;
+  --px-grass-dark: #94ba8b;
+  --px-orange: #f1ab76;
+  --px-snow: #fbfaf6;
 }
 
 @media (min-width: 48rem) {

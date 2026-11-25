@@ -1,0 +1,114 @@
+---
+/*
+ * Terminal (DESIGN.md "Terminal"; styles in terminal.css). A light terminal island: a caption
+ * bar with a live dot, a screen of transcript steps and a caption strip. Every command and
+ * every line of output is real DOM text: motion only reveals it, so the final transcript is
+ * there without JavaScript and under reduced motion.
+ *
+ * Layouts: standalone (row 0), beat (one pane beside its prose, in a .split) and story
+ * (several panes in one .split.story, swapped by their chapters' view timelines).
+ * onLoad panes type by time (--d seconds); the others type as their chapter scrolls (--at).
+ */
+import PixelScene from './PixelScene.astro';
+import type { Line, Output, SceneData, Seg, Step } from '../lib/terminal';
+import '../styles/terminal.css';
+
+export interface PlayedStep extends Step {
+  out: Output;
+}
+
+interface Props {
+  name: string;
+  title: string;
+  label: string;
+  foot: string;
+  steps: PlayedStep[];
+  row?: number;
+  pos?: 'first' | 'mid' | 'last' | 'solo';
+  onLoad?: boolean;
+  endAt?: number;
+  endDelay?: number;
+  scenes?: SceneData[];
+  sceneAt?: number[];
+  journey?: { intro: string; outro: string };
+  class?: string;
+}
+const {
+  name,
+  title,
+  label,
+  foot,
+  steps,
+  row = 0,
+  pos = 'solo',
+  onLoad = false,
+  endAt = 0.9,
+  endDelay = 0,
+  scenes = [],
+  sceneAt = [],
+  journey,
+  class: extra,
+} = Astro.props;
+
+const segs = (line: Line): Seg[] => (typeof line === 'string' ? [line] : line);
+const timing = (s: { delay?: number; at?: number }) => (onLoad ? `--d: ${s.delay ?? 0}s` : `--at: ${s.at ?? 0}`);
+const pad = (n: number) => String(n).padStart(2, '0');
+const lastAt = (i: number) => sceneAt[i] ?? 0;
+---
+<figure
+  class:list={['island', 'term', { 't-onload': onLoad }, extra]}
+  data-demo={name}
+  data-row={row}
+  data-pos={pos}
+  style={row ? `--row: ${row}; --tl: --ch-${row}` : undefined}
+  aria-label={label}
+>
+  <figcaption class="island-bar t-bar">
+    <span class="label t-title">{title}</span>
+    <span class="t-dot" aria-hidden="true"></span>
+  </figcaption>
+  <div class="t-screen">
+    <div class="t-feed">
+      {steps.map((s) => (
+        <div class="t-step" style={`${timing(s)}; --chars: ${s.cmd.length}`}>
+          <div class="t-line t-in"><span class="t-ps" aria-hidden="true">$ </span><kbd class:list={['t-cmd', { typed: onLoad }]}>{s.cmd}</kbd></div>
+          {s.out.kind === 'lines' && s.out.lines.length > 0 && (
+            <samp class="t-out">
+              {s.out.lines.map((line) => (
+                <span class="t-line">{segs(line).map((g) => (typeof g === 'string' ? g : <span class={`t-${g[0]}`}>{g[1]}</span>))}</span>
+              ))}
+            </samp>
+          )}
+          {s.out.kind === 'journey' && journey && (
+            <samp class="t-out">
+              <span class="t-line t-dim">{journey.intro}</span>
+            </samp>
+          )}
+        </div>
+      ))}
+      {scenes.length > 0 && (
+        <ol class="t-scenes">
+          {scenes.map((sc, i) => (
+            <li class="t-scene" style={`--at: ${lastAt(i)}`}>
+              <PixelScene scene={sc} alt={sc.alt} />
+              <span class="t-scene-text">
+                <span class="t-green">{pad(i + 1)}/{pad(scenes.length)} {sc.title}</span>
+                <span class="t-dim">{sc.caption}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {scenes.length > 0 && journey && (
+        <div class="t-line t-step t-dim" style={`--at: ${lastAt(scenes.length - 1) + 0.1}; --chars: 1`}>{journey.outro}</div>
+      )}
+      <div class="t-line t-end" style={onLoad ? `--d: ${endDelay}s` : `--at: ${endAt}`}>
+        <span class="t-ps" aria-hidden="true">$ </span><span class:list={['t-cursor', { cursor: onLoad }]} aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+  <div class="island-foot t-foot">
+    <span class="label">{foot}</span>
+    <span class="t-hint" hidden>click to type</span>
+  </div>
+</figure>

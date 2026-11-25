@@ -1,0 +1,575 @@
+/*
+ * Terminal (DESIGN.md "Terminal"; src/components/Terminal.astro). Tokens only; CSS-only motion.
+ *
+ * Layers, from the floor up:
+ *   1. Static, in every browser: each pane is an island with its final transcript visible.
+ *      Below 64rem a pane sits inline above its prose. From 64rem up, in a .split.story, each
+ *      pane sits in the left column beside its own prose, sticky within its row (the beat).
+ *   2. Motion allowed: the on-load pane types by time; on narrow screens with scroll-driven
+ *      support, each pixel scene prints as it scrolls in.
+ *   3. Story mode, from 64rem up when view timelines and timeline-scope are supported and
+ *      motion is allowed: all panes share one sticky cell; the first starts centred over both
+ *      columns and slides left as the page scrolls; each chapter's view timeline shows its own
+ *      pane and types its commands.
+ * Under prefers-reduced-motion: reduce only layer 1 applies.
+ */
+
+/* ----- Page container ------------------------------------------------------------------ */
+
+.page-story {
+  max-width: calc(72rem + 2 * var(--gutter));
+}
+
+.hero {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.hero .links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+@media (min-width: 48rem) {
+  .hero,
+  .hero p {
+    text-align: center;
+  }
+
+  .hero .links {
+    justify-content: center;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----- The pane ------------------------------------------------------------------------ */
+
+figure.term {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  background-color: var(--term-bg);
+  color: var(--term-fg);
+}
+
+.t-bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  border-left: 2px solid var(--term-blue);
+  background-color: var(--term-bar);
+}
+
+.t-bar .t-title {
+  color: var(--term-fg);
+}
+
+.t-dot {
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background-color: var(--term-blue);
+}
+
+.t-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-term);
+  font-size: var(--text-term);
+  line-height: var(--leading-term);
+}
+
+.t-line {
+  display: block;
+  min-height: calc(var(--leading-term) * 1em);
+  hyphens: manual;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.t-out,
+.t-cmd {
+  display: block;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.t-cmd {
+  display: inline;
+  color: var(--term-fg);
+}
+
+.t-ps,
+.t-blue {
+  color: var(--term-blue);
+}
+
+.t-dim {
+  color: var(--term-dim);
+}
+
+.t-green {
+  color: var(--term-green);
+}
+
+.t-red {
+  color: var(--term-red);
+}
+
+.t-amber {
+  color: var(--term-amber);
+}
+
+.t-bold {
+  font-weight: var(--weight-strong);
+}
+
+.t-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  vertical-align: text-bottom;
+  background-color: var(--term-cursor);
+}
+
+.t-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  background-color: var(--term-foot);
+}
+
+.t-hint {
+  flex: none;
+  color: var(--term-blue);
+  font-family: var(--font-ui);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-body);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.t-hint::before {
+  margin-right: var(--space-1);
+  color: var(--muted);
+  content: "[" / "";
+}
+
+.t-hint::after {
+  margin-left: var(--space-1);
+  color: var(--muted);
+  content: "]" / "";
+}
+
+.t-hint[hidden] {
+  display: none;
+}
+
+@media (max-width: 47.99rem) {
+  .t-screen {
+    padding-inline: var(--space-3);
+    font-size: var(--text-term-small);
+  }
+}
+
+/* ----- Pixel scenes -------------------------------------------------------------------- */
+
+.t-scenes {
+  margin: var(--space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.t-scene {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  margin: 0 0 var(--space-2);
+}
+
+.px-scene {
+  display: block;
+  width: 96px;
+  height: 72px;
+  border: var(--border);
+  border-radius: var(--radius-1);
+}
+
+.t-scene-text {
+  display: grid;
+  gap: var(--space-1);
+  line-height: var(--leading-tight);
+}
+
+.px-sky { fill: var(--px-sky); }
+.px-cloud { fill: var(--px-cloud); }
+.px-sun { fill: var(--px-sun); }
+.px-rose { fill: var(--px-rose); }
+.px-peach { fill: var(--px-peach); }
+.px-stone { fill: var(--px-stone); }
+.px-stone-dark { fill: var(--px-stone-dark); }
+.px-lamp { fill: var(--px-lamp); }
+.px-ink { fill: var(--px-ink); }
+.px-cream { fill: var(--px-cream); }
+.px-wood { fill: var(--px-wood); }
+.px-wood-dark { fill: var(--px-wood-dark); }
+.px-teal { fill: var(--px-teal); }
+.px-blue { fill: var(--px-blue); }
+.px-grass { fill: var(--px-grass); }
+.px-grass-dark { fill: var(--px-grass-dark); }
+.px-orange { fill: var(--px-orange); }
+.px-snow { fill: var(--px-snow); }
+
+/* ----- Story prose and the sections after it ------------------------------------------- */
+
+.story-list {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.story-list li {
+  margin: 0;
+  padding: var(--space-3) 0;
+  border-top: var(--border);
+}
+
+.story-list li:last-child {
+  border-bottom: var(--border);
+}
+
+.story-list .label {
+  margin: 0;
+}
+
+.try,
+.colophon {
+  max-width: 48rem;
+  margin: var(--space-8) auto 0;
+}
+
+.try h2,
+.colophon h2 {
+  font-size: var(--text-section);
+}
+
+/* ----- Beat layout: 64rem and up, every browser ---------------------------------------- */
+
+/* Each pane and its prose share a grid row, so a sticky pane stays beside its own prose. */
+@media (min-width: 64rem) {
+  .story {
+    column-gap: var(--term-story-gap);
+    row-gap: var(--space-8);
+  }
+
+  .story > .split-media {
+    grid-column: 1;
+    grid-row: var(--row);
+  }
+
+  .story > .split-prose {
+    grid-column: 2;
+    grid-row: var(--row);
+  }
+}
+
+/* ----- Motion -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes t-type {
+    from {
+      width: 0;
+    }
+  }
+
+  @keyframes t-appear {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-print {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+  }
+
+  .t-dot,
+  .t-cursor {
+    animation: blink var(--blink) steps(1) infinite;
+  }
+
+  /* The on-load pane types by time: each step appears at --d, then its command types. */
+  .t-onload .t-cmd {
+    display: inline-block;
+    width: calc(var(--chars) * 1ch);
+    overflow: hidden;
+    vertical-align: bottom;
+    white-space: nowrap;
+    animation: t-type calc(var(--chars) * var(--term-char)) steps(var(--chars), jump-start) both;
+    animation-delay: var(--d);
+  }
+
+  .t-onload .t-step,
+  .t-onload .t-end {
+    animation: t-appear 1ms steps(1, jump-start) both;
+    animation-delay: var(--d);
+  }
+
+  .t-onload .t-out {
+    animation: t-appear var(--duration-fast) var(--ease) both;
+    animation-delay: calc(var(--d) + var(--chars) * var(--term-char) + var(--duration-fast));
+  }
+
+}
+
+/* Narrow screens with scroll-driven support: each pixel scene prints as it scrolls in. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) and (max-width: 63.99rem) {
+    .t-scene {
+      animation: t-print steps(8, jump-start) both;
+      animation-timeline: view();
+      animation-range: entry 40% entry 100%;
+    }
+  }
+}
+
+/* ----- Story mode ---------------------------------------------------------------------- */
+
+@supports (animation-timeline: view()) and (timeline-scope: --a) {
+  @media (prefers-reduced-motion: no-preference) and (min-width: 64rem) {
+    /* The first pane starts centred over both columns: half the gap and the prose column. */
+    @keyframes t-home {
+      from {
+        translate: calc((var(--term-story-gap) + var(--measure)) / 2) 0;
+      }
+    }
+
+    @keyframes t-copy-in {
+      from {
+        opacity: 0;
+      }
+    }
+
+    /* A pane shows while its chapter crosses the line 55% down the viewport. */
+    @keyframes t-show {
+      0%,
+      100% {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      4%,
+      96% {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    @keyframes t-show-first {
+      0%,
+      96% {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      100% {
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
+
+    @keyframes t-show-last {
+      0% {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      4%,
+      100% {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    /* The page-scroll timeline goes through a custom property: the CSS minifier would otherwise
+     * fold a literal scroll(root) into the animation shorthand, which browsers reject. */
+    .story {
+      --t-page: scroll(root);
+
+      row-gap: 0;
+      timeline-scope: --ch-1, --ch-2, --ch-3;
+    }
+
+    /* The panes leave their wrappers and share one cell spanning every row. */
+    .story > .split-media {
+      display: contents;
+    }
+
+    .story .term {
+      grid-row: 1 / -1;
+      grid-column: 1;
+      height: var(--term-h);
+      animation: t-show linear both;
+      animation-timeline: var(--tl);
+      animation-range: cover 45vh cover calc(100% - 55vh);
+    }
+
+    .story .term[data-pos="first"] {
+      z-index: 2;
+      animation:
+        t-home linear both,
+        t-show-first linear both;
+      animation-timeline: var(--t-page), var(--tl);
+      animation-range:
+        0 40vh,
+        cover 0% cover calc(100% - 55vh);
+    }
+
+    .story .term[data-pos="last"] {
+      animation-name: t-show-last;
+    }
+
+    .story .term .t-screen:not(.t-live) {
+      overflow: clip;
+    }
+
+    .story > .split-prose {
+      min-height: 120vh;
+      padding: var(--space-7) 0;
+      view-timeline-name: var(--tl);
+    }
+
+    /* A chapter's text stays beside its pane while the chapter scrolls. */
+    .story > .split-prose:not([data-row="1"]) > section {
+      position: sticky;
+      top: var(--space-6);
+    }
+
+    /* The first chapter waits for the pane to slide out of its way. */
+    .story > .split-prose[data-row="1"] {
+      min-height: 0;
+      padding-top: 0;
+      animation: t-copy-in linear both;
+      animation-timeline: var(--t-page);
+      animation-range: 12vh 42vh;
+    }
+
+    /* Typing, driven by the chapter's scroll: a step appears at --at of the way through its
+     * chapter, its command types over 9vh of scroll, and then its output appears. */
+    .story .term:not(.t-onload) .t-step,
+    .story .term:not(.t-onload) .t-end {
+      animation: t-appear steps(1, jump-start) both;
+      animation-timeline: var(--tl);
+      animation-range:
+        cover calc(45vh + var(--at) * (100% - 100vh))
+        cover calc(45vh + var(--at) * (100% - 100vh) + 1px);
+    }
+
+    .story .term:not(.t-onload) .t-cmd {
+      display: inline-block;
+      width: calc(var(--chars) * 1ch);
+      overflow: hidden;
+      vertical-align: bottom;
+      white-space: nowrap;
+      animation: t-type steps(var(--chars), jump-start) both;
+      animation-timeline: var(--tl);
+      animation-range:
+        cover calc(45vh + var(--at) * (100% - 100vh))
+        cover calc(45vh + var(--at) * (100% - 100vh) + 9vh);
+    }
+
+    .story .term:not(.t-onload) .t-out {
+      animation: t-appear steps(1, jump-start) both;
+      animation-timeline: var(--tl);
+      animation-range:
+        cover calc(45vh + var(--at) * (100% - 100vh) + 9vh)
+        cover calc(45vh + var(--at) * (100% - 100vh) + 10vh);
+    }
+
+    .story .term .t-scene {
+      animation: t-print steps(8, jump-start) both;
+      animation-timeline: var(--tl);
+      animation-range:
+        cover calc(45vh + var(--at) * (100% - 100vh))
+        cover calc(45vh + var(--at) * (100% - 100vh) + 8vh);
+    }
+  }
+}
+
+/* ----- Interactive layer (src/scripts/terminal.ts; home page only) --------------------- */
+
+.term-js .term {
+  cursor: text;
+}
+
+.term.is-live {
+  z-index: 3;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.t-live {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.t-live * {
+  animation: none !important;
+}
+
+.t-live .t-cmd {
+  display: inline;
+  width: auto;
+}
+
+.t-prompt {
+  display: flex;
+  align-items: baseline;
+}
+
+.t-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  color: var(--term-fg);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: var(--term-cursor);
+}
+
+.t-input:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
+.t-try .t-screen {
+  min-height: 12rem;
+}
+
+@media (min-width: 64rem) {
+  .story .term.is-live .t-live {
+    height: 100%;
+  }
+}
