@@ -74,6 +74,16 @@ test('notes and the journey answer from the canned data; clear empties the scree
   await expect(log.locator('.t-line')).toHaveCount(0);
 });
 
+test('a second command typed quickly prints after the first one\'s answer', async ({ page }) => {
+  const { log } = await openFirst(page);
+  await log.evaluate((el) => el.replaceChildren());
+  await type(page, 'notes ls');
+  await type(page, 'whoami');
+  await expect(log).toContainText(data.persona.name);
+  const lines = await log.locator(':scope > .t-line').allTextContents();
+  expect(lines.findIndex((l) => l.includes('whoami'))).toBeGreaterThan(lines.findIndex((l) => /water the plants/.test(l)));
+});
+
 test('Esc leaves the prompt and puts focus back on the terminal', async ({ page }) => {
   const { pane, input } = await openFirst(page);
   await page.keyboard.press('Escape');
