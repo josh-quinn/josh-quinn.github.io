@@ -192,7 +192,8 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
     const history = session.history;
     if (e.key === 'Escape') {
       e.preventDefault();
-      if (sticky) input.blur();
+      // The try-it pane stays live; focus goes back to the pane itself, never to <body>.
+      if (sticky) pane.focus({ preventScroll: true });
       else leave(pane, true);
     } else if (e.key === 'ArrowUp') {
       if (!history.length) return;
@@ -221,6 +222,21 @@ function leave(pane: HTMLElement, refocus: boolean) {
   pane.classList.remove('is-live');
   lives.delete(pane);
   if (refocus) pane.focus({ preventScroll: true });
+}
+
+/**
+ * Hand a live pane back after a scroll (a chapter change, or the pane leaving the viewport).
+ * If its prompt had focus, focus stays on a pane rather than dropping to <body>: in story mode
+ * the pane now on screen (the handed-back one fades out), otherwise the pane itself.
+ */
+function handBack(pane: HTMLElement) {
+  const st = lives.get(pane);
+  if (!st) return;
+  const hadFocus = document.activeElement === st.input;
+  leave(pane, false);
+  if (!hadFocus) return;
+  const onScreen = storyMode() ? panes.find((p) => Number(p.dataset.row) === active) : undefined;
+  (onScreen ?? pane).focus({ preventScroll: true });
 }
 
 /* ---- Wiring -------------------------------------------------------------------------------- */
@@ -283,7 +299,7 @@ const io = new IntersectionObserver(
     active = next || active;
     setFocusable();
     // Hand back to the CSS demo once the reader moves on to another chapter.
-    for (const p of panes) if (lives.has(p) && Number(p.dataset.row) !== next) leave(p, false);
+    for (const p of panes) if (lives.has(p) && Number(p.dataset.row) !== next) handBack(p);
   },
   { rootMargin: '-50% 0px -50% 0px' },
 );
@@ -291,7 +307,7 @@ chapters.forEach((c) => io.observe(c));
 
 // A live pane also hands back once it leaves the viewport (narrow layouts, or past the story).
 const gone = new IntersectionObserver((entries) => {
-  for (const e of entries) if (!e.isIntersecting && lives.has(e.target as HTMLElement)) leave(e.target as HTMLElement, false);
+  for (const e of entries) if (!e.isIntersecting && lives.has(e.target as HTMLElement)) handBack(e.target as HTMLElement);
 });
 panes.forEach((p) => gone.observe(p));
 
@@ -301,7 +317,15 @@ reduceMotion.addEventListener('change', setFocusable);
 // The try-it terminal is always live.
 if (tryPane) {
   tryPane.querySelector('.t-hint')?.removeAttribute('hidden');
+  // Focusable, so Esc has somewhere to return focus to; Enter or Space goes back to the prompt.
+  tryPane.tabIndex = 0;
+  tryPane.setAttribute('aria-label', `${tryPane.getAttribute('aria-label') || 'Terminal'}. Press Enter to type commands.`);
   makeLive(tryPane, { sticky: true });
+  tryPane.addEventListener('keydown', (e) => {
+    if (e.target !== tryPane || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    lives.get(tryPane)?.input.focus({ preventScroll: true });
+  });
   tryPane.addEventListener('click', (e) => {
     if ((e.target as Element).closest('a')) return;
     for (const p of panes) leave(p, false);

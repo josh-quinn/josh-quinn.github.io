@@ -130,6 +130,30 @@ test('scrolling to another chapter hands back to the CSS demo', async ({ page })
   await expect(pane).not.toHaveClass(/is-live/);
 });
 
+test('a chapter change while typing moves focus to the pane now on screen, not the page', async ({ page }) => {
+  const { input } = await openFirst(page);
+  await expect(input).toBeFocused();
+  await page.locator('.split-prose[data-row="2"]').evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    scrollBy(0, r.top + r.height / 2 - innerHeight / 2);
+  });
+  await expect(page.locator('.t-input')).toHaveCount(1); // only the try-it prompt is left
+  await expect(page.locator('.term[data-row="2"]')).toBeFocused();
+});
+
+test.describe('at 390px', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('a pane scrolled out of view hands back and keeps focus on itself, without scrolling back', async ({ page }) => {
+    const { pane, input } = await openFirst(page);
+    await expect(input).toBeFocused();
+    await page.evaluate(() => scrollTo(0, document.querySelector<HTMLElement>('.split-prose[data-row="2"]')!.offsetTop));
+    await expect(pane.locator('.t-input')).toHaveCount(0);
+    await expect(pane).toBeFocused();
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(400);
+  });
+});
+
 test('about 20s idle with an empty prompt hands back to the CSS demo', async ({ page }) => {
   await page.clock.install();
   const { pane } = await openFirst(page);
@@ -145,6 +169,21 @@ test('the try-it terminal near the bottom is always live', async ({ page }) => {
   await expect(tryPane.getByRole('textbox')).toBeFocused();
   await type(page, 'whoami');
   await expect(tryPane.locator('[role="log"]')).toContainText(data.persona.name);
+});
+
+test('the try-it terminal is focusable and Esc returns focus to it', async ({ page }) => {
+  await page.goto('/');
+  const tryPane = page.locator('.term[data-demo="try"]');
+  await tryPane.scrollIntoViewIfNeeded();
+  await expect(tryPane).toHaveAttribute('tabindex', '0');
+  await expect(tryPane).toHaveAccessibleName(/try it yourself/i);
+  await tryPane.click();
+  await expect(tryPane.getByRole('textbox')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(tryPane).toBeFocused();
+  await expect(tryPane.getByRole('textbox')).toHaveCount(1); // it stays live
+  await page.keyboard.press('Enter');
+  await expect(tryPane.getByRole('textbox')).toBeFocused();
 });
 
 test('input is printed as text, never markup, and nothing leaves the page', async ({ page }) => {
