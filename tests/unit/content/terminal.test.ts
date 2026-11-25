@@ -85,6 +85,13 @@ describe('the canned session', () => {
     expect(text(s.run('cat'))).toBe('usage: cat <file>');
   });
 
+  it('treats inherited object keys as missing files, not as files', () => {
+    const s = createSession(data);
+    for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty', '~/valueOf']) {
+      expect(text(s.run(`cat ${name}`))).toBe(`cat: ${name}: No such file or directory`);
+    }
+  });
+
   it('lists the home directory, dotfiles with -a', () => {
     const s = createSession(data);
     expect(text(s.run('ls'))).toContain('now.txt');

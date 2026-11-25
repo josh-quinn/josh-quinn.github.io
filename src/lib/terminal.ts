@@ -118,7 +118,9 @@ export function createSession(data: TermData) {
         return lines((args.includes('-a') ? ['.', '..', '.my-journey.sh'] : []).concat(Object.keys(data.files).sort()).join('  '));
       case 'cat': {
         if (!args.length) return lines('usage: cat <file>');
-        return lines(...args.flatMap((a) => data.files[file(a)] ?? [`cat: ${a}: No such file or directory`]));
+        // Own keys only: an inherited name (constructor, __proto__, ...) is not a file.
+        const read = (name: string) => (Object.hasOwn(data.files, name) ? data.files[name] : undefined);
+        return lines(...args.flatMap((a) => read(file(a)) ?? [`cat: ${a}: No such file or directory`]));
       }
       case 'notes':
         return notesCmd(args);
