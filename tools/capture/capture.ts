@@ -18,7 +18,7 @@ import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadToolConfig, toolStateDir } from '../lib/config.ts';
-import { PRIVATE_PATTERNS } from '../../tests/privacy/patterns.ts';
+import { PRIVATE_PATTERNS, UUID_SHAPED } from '../../tests/privacy/patterns.ts';
 
 export type CaptureEvent = 'PreCompact' | 'SessionEnd' | 'manual';
 export type CaptureAgent = 'claude' | 'copilot';
@@ -113,7 +113,9 @@ export function redact(text: string): string {
   const email = PRIVATE_PATTERNS.find((p) => p.name === 'email')!;
   const phone = PRIVATE_PATTERNS.find((p) => p.name === 'phone')!;
   out = out.replace(new RegExp(email.re.source, 'g'), '[redacted-email]');
-  out = out.replace(new RegExp(phone.re.source, 'g'), (m) => (DATE_SHAPED.test(m.trim()) ? m : '[redacted-phone]'));
+  out = out.replace(new RegExp(`(${UUID_SHAPED.source})|(${phone.re.source})`, 'gi'), (m, uuid) =>
+    uuid || DATE_SHAPED.test(m.trim()) ? m : '[redacted-phone]',
+  );
   return out;
 }
 

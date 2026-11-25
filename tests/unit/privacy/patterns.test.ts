@@ -47,6 +47,19 @@ describe('assertNoPrivateData', () => {
     expect(() => assertNoPrivateData(`<p>2019 - 2023 ${local}</p>`, PRIVATE_PATTERNS)).toThrow(/phone/);
   });
 
+  it('does not flag digit groups inside a canonical UUID as a phone', () => {
+    const uuid = ['abcd1234', '0000', '0000', '0000', '0'.repeat(12)].join('-');
+    const uuid2 = ['ffff0000', '1111', '2222', '3333', '4'.repeat(12)].join('-');
+    expect(() => assertNoPrivateData(`<p>${uuid} and ${uuid2}</p>`, PRIVATE_PATTERNS)).not.toThrow();
+  });
+
+  it('still detects a phone next to a UUID', () => {
+    const uuid = ['abcd1234', '0000', '0000', '0000', '0'.repeat(12)].join('-');
+    const local = ['087', '123', '4567'].join(' ');
+    expect(() => assertNoPrivateData(`<p>${uuid} ${local}</p>`, PRIVATE_PATTERNS)).toThrow(/phone/);
+    expect(() => assertNoPrivateData(`<p>${local} ${uuid}</p>`, PRIVATE_PATTERNS)).toThrow(/phone/);
+  });
+
   it('detects DOB-like, passport and ENG1', () => {
     expect(() => assertNoPrivateData(`<p>${fakeDob}</p>`, PRIVATE_PATTERNS)).toThrow(/date-of-birth/);
     expect(() => assertNoPrivateData('<p>Passport</p>', PRIVATE_PATTERNS)).toThrow(/passport/);

@@ -52,6 +52,20 @@ describe('.gitleaks.toml', () => {
     expect(scan(`${local} 2026-11-22`).rules).toContain('pii-phone');
   });
 
+  it('does not flag digit groups inside canonical UUIDs, but still flags a phone next to one', () => {
+    const uuids = [
+      ['abcd1234', '0000', '0000', '0000', '0'.repeat(12)].join('-'),
+      ['ffff0000', '1111', '2222', '3333', '4'.repeat(12)].join('-'),
+      ['12345678', '1234', '5678', '9012', 'a1b2c3d4e5f6'].join('-'),
+    ];
+    // One per scan: the phone pattern's whitespace class can join two all-digit UUIDs on adjacent lines.
+    for (const u of uuids) expect(scan(u)).toEqual({ status: 0, rules: [] });
+    const local = ['087', '123', '4567'].join(' ');
+    const uuid = ['abcd1234', '0000', '0000', '0000', '0'.repeat(12)].join('-');
+    expect(scan(`${uuid} ${local}`).rules).toContain('pii-phone');
+    expect(scan(`${local} ${uuid}`).rules).toContain('pii-phone');
+  });
+
   it('flags lookalike addresses that only contain an allowlisted one', () => {
     const lookalikes = [
       ['legit', 'github.com'].join('@'),

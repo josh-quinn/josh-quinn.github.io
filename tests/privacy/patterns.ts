@@ -16,10 +16,14 @@ export interface PrivatePattern {
 // Date-shaped phone false positives: YYYY-MM-DD, YYYY-MM, and year ranges.
 const DATE_SHAPED = /\b(?:\d{4}-\d{2}(?:-\d{2})?|\d{4}\s*-\s*\d{4})\b/g;
 
+// Canonical UUIDs (e.g. session ids): their digit groups look like phone numbers.
+export const UUID_SHAPED = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+const PHONE_MASK = new RegExp(`${DATE_SHAPED.source}|${UUID_SHAPED.source}`, 'gi');
+
 export const PRIVATE_PATTERNS: PrivatePattern[] = [
   { name: 'email', re: /[\w.+-]+@[\w-]+\.[\w.]+/ },
   { name: 'mailto', re: /mailto:/i },
-  { name: 'phone', re: /\+?\d[\d\s().-]{8,}\d/, mask: DATE_SHAPED },
+  { name: 'phone', re: /\+?\d[\d\s().-]{8,}\d/, mask: PHONE_MASK },
   {
     name: 'date-of-birth',
     re: /\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+19\d{2}\b/i,
