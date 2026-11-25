@@ -1,68 +1,164 @@
 ---
 import Base from '../layouts/Base.astro';
+import Terminal, { type PlayedStep } from '../components/Terminal.astro';
+import term from '../content/terminal.json';
+import { createSession, type Demo, type TermData } from '../lib/terminal';
+
+// Every terminal transcript is printed by the same canned session the live prompt uses
+// (src/lib/terminal.ts), run over the fictional content in src/content/terminal.json.
+const data = term as TermData;
+const session = createSession(data);
+const play = (demo: Demo): PlayedStep[] => demo.steps.map((s) => ({ ...s, out: session.run(s.cmd, { record: false }) }));
+const { whoami, notes, journey } = data.demos;
+const tryIt = data.demos.try;
+const pad = (n: number) => String(n).padStart(2, '0');
 ---
-<Base title="Josh Quinn" description="Personal site. Placeholder while it is being built.">
+<Base title="Josh Quinn" description="Personal site. Sample content while it is being built.">
   <aside class="announce" aria-label="Announcement">
-    <p>Under construction: a short CV comes first, then notes.</p>
+    <p>Under construction: everything here is sample content for a fictional persona.</p>
   </aside>
-  <div class="page-wide">
+  <div class="page-wide page-story">
     <header class="navbar">
       <a class="navbar-brand" href="/" aria-current="page">Josh Quinn</a>
     </header>
     <main>
-      <div class="measure">
-        <span class="label reveal">Personal site</span>
+      <div class="hero">
+        <span class="label reveal">Personal site · sample content</span>
         <h1>Josh Quinn</h1>
         <p class="reveal d2">
-          Placeholder. This site is under construction: a short CV, notes and the odd project will
-          live here. For now, this page only shows the type, colour and spacing the rest of the site
-          will use.
+          Placeholder. A short CV, notes and the odd project will live here. For now a small
+          terminal tells the story: it types as you scroll, and you can type into it yourself.
         </p>
-        <p class="reveal d3"><a class="bracket" href="#colophon">Read the colophon</a></p>
+        <p class="reveal d3 links"><a class="bracket" href="#colophon">Read the colophon</a></p>
       </div>
 
-      <div class="split">
-        <div class="split-media">
-          <section class="island terminal d4" aria-label="Terminal, placeholder">
-            <div class="island-bar"><span class="label">session · placeholder</span></div>
-            <pre class="island-body"><span class="prompt">$</span> <span class="typed" style="--chars: 11">cat now.txt</span>
-<span class="typed-out">Building this site: a short CV and some notes, soon.</span>
-<span class="prompt">$</span> <span class="cursor" aria-hidden="true"></span></pre>
-            <div class="island-foot"><span class="label">now.txt · read only</span></div>
+      <div class="split story">
+        <div class="split-media" style="--row: 1">
+          <Terminal
+            name="whoami"
+            row={1}
+            pos="first"
+            onLoad
+            title={whoami.title}
+            label={whoami.label}
+            foot={whoami.foot}
+            steps={play(whoami)}
+            endDelay={whoami.endDelay}
+          />
+        </div>
+        <div class="split-prose" data-row="1" style="--row: 1; --tl: --ch-1">
+          <section class="reveal d4" aria-labelledby="who">
+            <span class="label">Who</span>
+            <h2 id="who">A sample person, for now</h2>
+            <p>
+              Placeholder. This page belongs to a fictional persona while the site is built, so the
+              roles and places in the terminal are samples. The real ones arrive after a review.
+            </p>
+          </section>
+          <section class="reveal d5" aria-labelledby="now">
+            <span class="label">Now</span>
+            <h2 id="now">What they are up to</h2>
+            <p>
+              A sample role at a sample organisation, a sample course in the evenings, and a book
+              read one chapter a week. The terminal keeps it in <code>now.txt</code>.
+            </p>
           </section>
         </div>
 
-        <div class="split-prose">
-          <section class="reveal d5" aria-labelledby="what">
-            <h2 id="what">What goes here</h2>
+        <div class="split-media" style="--row: 2">
+          <Terminal
+            name="notes"
+            row={2}
+            pos="mid"
+            title={notes.title}
+            label={notes.label}
+            foot={notes.foot}
+            steps={play(notes)}
+            endAt={notes.endAt}
+          />
+        </div>
+        <div class="split-prose" data-row="2" style="--row: 2; --tl: --ch-2">
+          <section aria-labelledby="notes">
+            <span class="label">Projects</span>
+            <h2 id="notes">A small notes tool</h2>
             <p>
-              Placeholder. A short CV comes first, with a view for each audience. Notes and the odd
-              project follow, written as plain pages that read well on a phone.
+              Placeholder. An example of the kind of project that will live here: a tiny command-line
+              tool that adds a note, lists the notes as a table and marks them done. It is fictional,
+              and so are its notes.
             </p>
+            <p>The terminal runs it as you scroll: <code>notes add</code>, then <code>notes ls</code>.</p>
           </section>
+        </div>
 
-          <section class="reveal d6" aria-labelledby="how">
-            <h2 id="how">How it is made</h2>
+        <div class="split-media" style="--row: 3">
+          <Terminal
+            name="journey"
+            row={3}
+            pos="last"
+            title={journey.title}
+            label={journey.label}
+            foot={journey.foot}
+            steps={play(journey)}
+            endAt={journey.endAt}
+            scenes={data.journey.scenes}
+            sceneAt={journey.sceneAt}
+            journey={{ intro: data.journey.intro, outro: data.journey.outro }}
+          />
+        </div>
+        <div class="split-prose" data-row="3" style="--row: 3; --tl: --ch-3">
+          <section aria-labelledby="journey">
+            <span class="label">About</span>
+            <h2 id="journey">The journey so far</h2>
             <p>
-              Placeholder. Static pages, one serif and one mono, set on paper drawn in CSS. Nothing
-              runs in your browser: the motion on this page is CSS alone, and it stops when you ask
-              for reduced motion.
+              Placeholder. A short script prints three small scenes, drawn as pixels in SVG. They are
+              generic: a city, some books and a laptop stand in until the real story is written.
             </p>
-          </section>
-
-          <section aria-labelledby="colophon">
-            <h2 id="colophon">Colophon</h2>
-            <dl class="facts">
-              <dt>Type</dt>
-              <dd>Newsreader, Departure Mono</dd>
-              <dt>Paper</dt>
-              <dd>Drawn in CSS</dd>
-              <dt>Scripts</dt>
-              <dd>None</dd>
-            </dl>
+            <ol class="story-list">
+              {data.journey.scenes.map((s, i) => (
+                <li>
+                  <span class="label">{pad(i + 1)} · {s.title}</span>
+                  {s.caption.charAt(0).toUpperCase() + s.caption.slice(1)}.
+                </li>
+              ))}
+            </ol>
           </section>
         </div>
       </div>
+
+      <section class="try" aria-labelledby="try">
+        <span class="label">Try it</span>
+        <h2 id="try">Type into the terminal</h2>
+        <p>Type <code>help</code> for the commands. Every answer is canned, and nothing you type leaves this page.</p>
+        <Terminal
+          name="try"
+          class="t-try"
+          title={tryIt.title}
+          label={tryIt.label}
+          foot={tryIt.foot}
+          steps={play(tryIt)}
+        />
+      </section>
+
+      <section class="colophon" aria-labelledby="colophon">
+        <span class="label">Colophon</span>
+        <h2 id="colophon">How it is made</h2>
+        <p>
+          Static pages, one serif and two monos, set on paper drawn in CSS. The terminal's motion is
+          CSS alone and stops when you ask for reduced motion. One small script lets you type into
+          it; without the script, the transcripts above are the whole page.
+        </p>
+        <dl class="facts">
+          <dt>Type</dt>
+          <dd>Newsreader, Departure Mono, Commit Mono</dd>
+          <dt>Paper</dt>
+          <dd>Drawn in CSS</dd>
+          <dt>Scripts</dt>
+          <dd>One, for the terminal on this page</dd>
+        </dl>
+      </section>
     </main>
   </div>
+  <script>
+    import '../scripts/terminal.ts';
+  </script>
 </Base>
