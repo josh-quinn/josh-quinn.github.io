@@ -142,7 +142,7 @@ test.describe('home page', () => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/');
     const names = await page.evaluate(() =>
-      ['.reveal', 'h1', '.island', '.cursor', '.typed'].map((sel) => {
+      ['.reveal', 'h1', '.island', '.cursor', '.term.is-playing .t-screen'].map((sel) => {
         const el = document.querySelector(sel);
         return el ? getComputedStyle(el).animationName : 'missing';
       }),

@@ -14,9 +14,9 @@ test.describe('terminal without JavaScript', () => {
   test('every demo transcript is real text in the DOM', async ({ page }) => {
     await page.goto('/');
     const terms = page.locator('.term');
-    await expect(terms).toHaveCount(4);
+    await expect(terms).toHaveCount(5);
     const all = (await terms.allTextContents()).join('\n');
-    for (const cmd of ['whoami', 'cat now.txt', 'notes add "water the plants"', 'notes ls', '~/.my-journey.sh', 'help']) {
+    for (const cmd of ['whoami', 'cat now.txt', 'notes add "water the plants"', 'notes ls', 'notes tui', '~/.my-journey.sh', 'help']) {
       expect(all).toContain(cmd);
     }
     expect(all).toContain(data.persona.name);
@@ -25,6 +25,18 @@ test.describe('terminal without JavaScript', () => {
     for (const s of data.journey.scenes) expect(all).toContain(s.title);
     // The scenes are images with text alternatives.
     await expect(page.locator('.term svg[role="img"]')).toHaveCount(3);
+    // The notes TUI shows only its final board: the other frames exist only for the loop.
+    const tui = page.locator('.term[data-demo="tui"]');
+    await expect(tui.locator('.t-frame.t-final')).toBeVisible();
+    expect(await tui.locator('.t-frame:not(.t-final)').evaluateAll((fs) => fs.every((f) => getComputedStyle(f).display === 'none'))).toBe(true);
+    for (const col of ['todo', 'doing', 'done']) await expect(tui.locator('.t-frame.t-final')).toContainText(col);
+    // Without JS the panes never stack: each sits beside its own chapter.
+    for (const row of [1, 2, 3, 4]) {
+      const pane = await page.locator(`.term[data-row="${row}"]`).boundingBox();
+      const prose = await page.locator(`.split-prose[data-row="${row}"]`).boundingBox();
+      expect(pane!.x + pane!.width).toBeLessThanOrEqual(prose!.x);
+      expect(Math.abs(pane!.y - prose!.y)).toBeLessThan(80);
+    }
     // No live prompt and no hint without JS: the static demo is the whole experience.
     await expect(page.locator('.t-input')).toHaveCount(0);
     await expect(page.locator('.t-hint').first()).toBeHidden();
@@ -61,7 +73,7 @@ test.describe('terminal under reduced motion', () => {
   test('sets each pane beside its own chapter (the static beat layout)', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    for (const row of [1, 2, 3]) {
+    for (const row of [1, 2, 3, 4]) {
       const pane = await page.locator(`.term[data-row="${row}"]`).boundingBox();
       const prose = await page.locator(`.split-prose[data-row="${row}"]`).boundingBox();
       expect(pane!.x + pane!.width).toBeLessThanOrEqual(prose!.x);
@@ -98,14 +110,32 @@ test.describe('terminal story at 1280px', () => {
     await page.goto('/');
     const opacity = (row: number) =>
       page.locator(`.term[data-row="${row}"]`).evaluate((el) => Number(getComputedStyle(el).opacity));
-    for (const row of [2, 3]) {
+    for (const row of [2, 3, 4]) {
       await page.locator(`.split-prose[data-row="${row}"]`).evaluate((el) => {
         const r = el.getBoundingClientRect();
         scrollBy(0, r.top + r.height / 2 - innerHeight * 0.55);
       });
+      // The script picks the section most in view; the pane fades in over --duration-fast.
+      await expect.poll(() => opacity(row)).toBeGreaterThan(0.9);
+      for (const other of [1, 2, 3, 4].filter((r) => r !== row)) await expect.poll(() => opacity(other)).toBeLessThan(0.1);
+    }
+  });
+});
+
+test.describe('terminal demos are loops, not scroll-scrubbed', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('no part of a demo is driven by a scroll or view timeline', async ({ page }) => {
+    await page.goto('/');
+    for (const y of [0, 900, 1800]) {
+      await page.evaluate((top) => scrollTo(0, top), y);
       await frames(page);
-      expect(await opacity(row)).toBeGreaterThan(0.9);
-      for (const other of [1, 2, 3].filter((r) => r !== row)) expect(await opacity(other)).toBeLessThan(0.1);
+      const scrubbed = await page.evaluate(() =>
+        [...document.querySelectorAll('.term .t-screen, .term .t-screen *')]
+          .flatMap((el) => el.getAnimations())
+          .filter((a) => a.timeline !== document.timeline).length,
+      );
+      expect(scrubbed).toBe(0);
     }
   });
 });
@@ -116,7 +146,7 @@ test.describe('terminal at 390px', () => {
   test('sits inline above its chapter, never sticky, with no sideways scroll', async ({ page }) => {
     await page.goto('/');
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
-    for (const row of [1, 2, 3]) {
+    for (const row of [1, 2, 3, 4]) {
       const pane = page.locator(`.term[data-row="${row}"]`);
       expect(await pane.evaluate((el) => getComputedStyle(el).position)).toBe('static');
       const p = await pane.boundingBox();

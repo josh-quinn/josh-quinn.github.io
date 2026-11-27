@@ -37,12 +37,15 @@ test('each demo shows a visible [ click to type ] hint', async ({ page }) => {
   await expect(hint).toHaveText('click to type');
 });
 
-test('clicking the terminal swaps in a labelled prompt seeded from the demo', async ({ page }) => {
+test('clicking the terminal pauses the demo and adds a labelled prompt below it', async ({ page }) => {
   const { pane, input, log } = await openFirst(page);
   await expect(input).toHaveAccessibleName(/type a command/i);
   await expect(log).toHaveAttribute('aria-live', 'polite');
-  await expect(log).toContainText('cat now.txt');
+  // The paused demo stays on screen above the prompt; the log holds only what is typed from now on.
+  await expect(pane.locator('.t-feed')).toBeVisible();
+  await expect(log).toHaveText('');
   await expect(pane).toHaveClass(/is-live/);
+  await expect(pane).toHaveClass(/is-paused/);
 });
 
 test('whoami prints the fictional name into the live output', async ({ page }) => {
@@ -72,6 +75,157 @@ test('notes and the journey answer from the canned data; clear empties the scree
   await expect(log.locator('.t-scenes').last().locator('svg[role="img"]')).toHaveCount(3);
   await type(page, 'clear');
   await expect(log.locator('.t-line')).toHaveCount(0);
+  await expect(page.locator('.term[data-row="1"] .t-feed')).toBeHidden();
+});
+
+test('cd, ls and ll walk the fictional tree, and the prompt shows the cwd', async ({ page }) => {
+  const { pane, log } = await openFirst(page);
+  const ps = pane.locator('.t-prompt .t-ps');
+  await expect(ps).toHaveText('~ $ ');
+  await type(page, 'ls');
+  await expect(log).toContainText('about.txt  notes/  now.txt  projects/');
+  await type(page, 'cd notes');
+  await expect(ps).toHaveText('~/notes $ ');
+  await type(page, 'll');
+  await expect(log).toContainText(/-rw-r--r--\s+sample\s+\d+ ideas\.md/);
+  await type(page, 'cd ..');
+  await expect(ps).toHaveText('~ $ ');
+  await type(page, 'll');
+  await expect(log).toContainText(/-rwxr-xr-x\s+sample\s+\d+ \.my-journey\.sh/);
+});
+
+test.describe('Tab completion', () => {
+  test('a single match completes the line', async ({ page }) => {
+    const { input } = await openFirst(page);
+    await page.keyboard.type('wh');
+    await page.keyboard.press('Tab');
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue('whoami ');
+    await page.keyboard.press('Control+U');
+    await page.keyboard.type('cat no');
+    await page.keyboard.press('Tab');
+    await page.keyboard.type('w');
+    await page.keyboard.press('Tab');
+    await expect(input).toHaveValue('cat now.txt ');
+  });
+
+  test('several matches print the candidates and keep the line', async ({ page }) => {
+    const { input, log } = await openFirst(page);
+    await page.keyboard.type('c');
+    await page.keyboard.press('Tab');
+    await expect(input).toBeFocused();
+    await expect(log).toContainText('cat  cd  clear');
+    await expect(input).toHaveValue('c');
+  });
+
+  test('an empty line, or no match, lets Tab move focus on', async ({ page }) => {
+    const { input } = await openFirst(page);
+    await page.keyboard.press('Tab');
+    await expect(input).not.toBeFocused();
+    const again = await openFirst(page);
+    await page.keyboard.type('xyz');
+    await page.keyboard.press('Tab');
+    await expect(again.input).not.toBeFocused();
+  });
+});
+
+test.describe('readline shortcuts', () => {
+  const caret = (page: Page) => page.locator('.term[data-row="1"] .t-input').evaluate((el: HTMLInputElement) => el.selectionStart);
+
+  test('Ctrl+L clears the screen', async ({ page }) => {
+    const { log } = await openFirst(page);
+    await type(page, 'whoami');
+    await expect(log).toContainText(data.persona.name);
+    await page.keyboard.press('Control+L');
+    await expect(log.locator('.t-line')).toHaveCount(0);
+  });
+
+  test('Ctrl+A and Ctrl+E go to the start and the end of the line', async ({ page }) => {
+    const { input } = await openFirst(page);
+    await page.keyboard.type('hoami');
+    await page.keyboard.press('Control+A');
+    expect(await caret(page)).toBe(0);
+    await page.keyboard.type('w');
+    await expect(input).toHaveValue('whoami');
+    await page.keyboard.press('Control+E');
+    expect(await caret(page)).toBe(6);
+  });
+
+  test('Ctrl+W deletes the previous word and Ctrl+U deletes to the line start', async ({ page }) => {
+    const { input } = await openFirst(page);
+    await page.keyboard.type('cat now.txt');
+    await page.keyboard.press('Control+W');
+    await expect(input).toHaveValue('cat ');
+    await page.keyboard.type('about.txt');
+    await page.keyboard.press('Control+U');
+    await expect(input).toHaveValue('');
+  });
+
+  test('Alt+Left and Alt+Right move by word', async ({ page }) => {
+    await openFirst(page);
+    await page.keyboard.type('notes add plants');
+    await page.keyboard.press('Alt+ArrowLeft');
+    expect(await caret(page)).toBe(10);
+    await page.keyboard.press('Alt+ArrowLeft');
+    expect(await caret(page)).toBe(6);
+    await page.keyboard.press('Alt+ArrowRight');
+    expect(await caret(page)).toBe(9);
+  });
+
+  test('Cmd/Meta combinations are left to the browser', async ({ page }) => {
+    const { input } = await openFirst(page);
+    await page.keyboard.type('cat now.txt');
+    const prevented = await input.evaluate((el) =>
+      ['w', 'a', 'l', 'u', 'e'].map((key) => {
+        const ev = new KeyboardEvent('keydown', { key, metaKey: true, bubbles: true, cancelable: true });
+        el.dispatchEvent(ev);
+        return ev.defaultPrevented;
+      }),
+    );
+    expect(prevented).toEqual([false, false, false, false, false]);
+    await expect(input).toHaveValue('cat now.txt');
+  });
+});
+
+test('the outline-free input keeps a visible focus cue: a solid cursor and a highlighted caption bar', async ({ page }) => {
+  const { pane, input } = await openFirst(page);
+  const lum = (rgb: string) => {
+    const [r, g, b] = (rgb.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number).map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+    return (x + 0.05) / (y + 0.05);
+  };
+  const state = () =>
+    pane.evaluate((el) => {
+      const i = getComputedStyle(el.querySelector('.t-input')!);
+      const c = getComputedStyle(el.querySelector('.t-block')!);
+      const bar = getComputedStyle(el.querySelector('.t-bar')!);
+      return {
+        outline: i.outlineStyle,
+        border: i.borderTopStyle,
+        shadow: i.boxShadow,
+        cursorFill: c.backgroundColor,
+        cursorOutline: `${c.outlineStyle} ${c.outlineWidth}`,
+        bar: bar.backgroundColor,
+        screen: getComputedStyle(el.querySelector('.t-screen')!).backgroundColor,
+      };
+    });
+  await expect(input).toBeFocused();
+  const on = await state();
+  expect(on.outline).toBe('none');
+  expect(on.border).toBe('none');
+  expect(on.shadow).toBe('none');
+  expect(ratio(on.cursorFill, on.screen)).toBeGreaterThanOrEqual(3);
+  await page.keyboard.press('Tab');
+  const off = await state();
+  expect(off.cursorFill).toBe('rgba(0, 0, 0, 0)');
+  expect(off.cursorOutline).toMatch(/^solid \dpx$/);
+  expect(ratio(on.bar, off.bar)).toBeGreaterThanOrEqual(3);
 });
 
 test('a second command typed quickly prints after the first one\'s answer', async ({ page }) => {
