@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { settle } from '../helpers/motion';
 
 // The demo loops (docs/decisions/0008-home-terminal-js.md, Amendment 1): each pane's demo is a
 // CSS loop on its own timer (a steps() clock on .t-screen). JS only picks the active section,
@@ -12,17 +13,6 @@ const clock = (page: Page, row: number) =>
     const a = el.getAnimations().find((x) => (x as CSSAnimation).animationName === 't-clock');
     return a ? { state: a.playState, time: Number(a.currentTime ?? 0) } : null;
   });
-
-/** Wait out the islands' one-off entrance animations (finite, time-based), so clicks land on still panes. */
-const settle = (page: Page) =>
-  page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.timeline === document.timeline && a.effect?.getTiming().iterations !== Infinity)
-        .map((a) => a.finished),
-    ),
-  );
 
 const toRow = async (page: Page, row: number, at = 0.5) => {
   await page.locator(`.split-prose[data-row="${row}"]`).evaluate((el, f) => {

@@ -37,6 +37,11 @@ interface Live {
   stop: () => void;
 }
 const lives = new WeakMap<HTMLElement, Live>();
+// Every live prompt's "cwd $" label: the panes share one session, so a cd anywhere moves them all.
+const promptLabels = new Set<HTMLElement>();
+const refreshPrompts = () => {
+  for (const el of promptLabels) el.textContent = `${session.prompt()} $ `;
+};
 
 /* ---- Output -------------------------------------------------------------------------------- */
 
@@ -137,6 +142,7 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
   ps.className = 't-ps';
   ps.setAttribute('aria-hidden', 'true');
   ps.textContent = `${session.prompt()} $ `;
+  promptLabels.add(ps);
 
   // The input is the real, labelled control; .t-echo draws its text and the block cursor.
   const field = document.createElement('span');
@@ -182,7 +188,12 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
   log.setAttribute('aria-live', 'polite');
 
   let idle: ReturnType<typeof setTimeout> | undefined;
+  // History is shared by every pane. Browsing starts at the newest entry each time the input
+  // gets focus; the line being typed is kept as a draft that arrow down past the newest restores.
   let pos = session.history.length;
+  let draft = '';
+  // The line whose Tab candidates were just printed: another Tab on it moves focus on instead.
+  let listed: string | null = null;
   const resetIdle = () => {
     clearTimeout(idle);
     if (sticky) return;
@@ -231,8 +242,9 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
     // Queued like the output, so a quick second command never lands inside the first's answer.
     emit([promptLine(where, value)]);
     const out = session.run(value);
-    ps.textContent = `${session.prompt()} $ `;
+    refreshPrompts();
     pos = session.history.length;
+    draft = '';
     if (out.kind === 'clear') clear();
     else if (out.kind === 'exit') {
       leave(pane, true);
@@ -265,23 +277,28 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
       else leave(pane, true);
     } else if (e.key === 'Tab' && plain && !e.shiftKey) {
       // No trap: an empty line, or nothing to complete, lets Tab move focus on.
+      // The same: a Tab that would only print the candidates already shown for this line.
       const c = session.complete(v);
-      if (c.kind === 'none') return;
+      if (c.kind === 'none' || (c.kind === 'one' && c.value === v)) return;
+      if (c.kind === 'many' && c.value === v && listed === v) return;
       e.preventDefault();
       if (c.kind === 'one') setLine(c.value);
+      else if (c.value !== v) setLine(c.value);
       else {
         emit([promptLine(session.prompt(), v), lineNode(c.candidates.join('  '))]);
-        setLine(c.value);
+        listed = v;
       }
     } else if (e.key === 'ArrowUp' && plain) {
       if (!history.length) return;
       e.preventDefault();
-      pos = Math.max(0, pos - 1);
+      if (pos >= history.length) draft = v;
+      pos = Math.max(0, Math.min(pos, history.length) - 1);
       setLine(history[pos] ?? '');
     } else if (e.key === 'ArrowDown' && plain) {
       e.preventDefault();
-      pos = Math.min(history.length, pos + 1);
-      setLine(history[pos] ?? '');
+      if (pos >= history.length) return;
+      pos += 1;
+      setLine(pos >= history.length ? draft : (history[pos] ?? ''));
     } else if (e.ctrlKey && !e.altKey) {
       const k = e.key.toLowerCase();
       if (k === 'l') clear();
@@ -297,6 +314,13 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
     }
   });
   for (const ev of ['input', 'keyup', 'mouseup', 'select', 'focus', 'blur']) input.addEventListener(ev, draw);
+  input.addEventListener('focus', () => {
+    pos = session.history.length;
+    draft = '';
+  });
+  input.addEventListener('input', () => {
+    listed = null;
+  });
   input.addEventListener('input', resetIdle);
 
   lives.set(pane, { log, form, screen, feed, input, stop: () => clearTimeout(idle) });
@@ -310,30 +334,49 @@ function leave(pane: HTMLElement, refocus: boolean) {
   st.stop();
   st.log.remove();
   st.form.remove();
+  promptLabels.delete(st.form.querySelector<HTMLElement>('.t-ps')!);
   st.screen.classList.remove('t-live-on');
   st.screen.style.removeProperty('min-height');
   if (st.feed) st.feed.hidden = false;
   pane.classList.remove('is-live');
   lives.delete(pane);
   // The loop starts again from the beginning; a pane that is not on screen stays still.
-  if (Number(pane.dataset.row) === active) play(pane);
+  if (Number(pane.dataset.row) === shownRow) play(pane);
   else stop(pane);
   if (refocus) pane.focus({ preventScroll: true });
 }
 
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const shown = (el: Element) => {
+  const r = el.getBoundingClientRect();
+  return el.checkVisibility({ visibilityProperty: true }) && r.bottom > 0 && r.top < innerHeight;
+};
+
+/** Where focus goes when a focused prompt is handed back: always visible, never <body>. */
+function focusTarget(pane: HTMLElement): HTMLElement | null {
+  if (!storyMode()) return pane;
+  // Story mode: the pane now on screen (the handed-back one is hidden; past the story, the
+  // last pane while it is still in view), else the first focusable thing after the story.
+  const onScreen = panes.find((p) => Number(p.dataset.row) === shownRow);
+  if (onScreen && shown(onScreen)) return onScreen;
+  const story = document.querySelector('.story');
+  const after = [...document.querySelectorAll<HTMLElement>(FOCUSABLE)].find(
+    (el) => story && story.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !story.contains(el) && el.checkVisibility({ visibilityProperty: true }),
+  );
+  return after ?? tryPane;
+}
+
 /**
  * Hand a live pane back after a scroll (another section, or the pane leaving the viewport).
- * If its prompt had focus, focus stays on a pane rather than dropping to <body>: in story mode
- * the pane now on screen (the handed-back one is hidden), otherwise the pane itself.
+ * If its prompt had focus, focus moves to something visible (focusTarget). Call it only after
+ * the classes and tab order for the new active section are in place.
  */
 function handBack(pane: HTMLElement) {
   const st = lives.get(pane);
   if (!st) return;
   const hadFocus = document.activeElement === st.input;
   leave(pane, false);
-  if (!hadFocus) return;
-  const onScreen = storyMode() ? panes.find((p) => Number(p.dataset.row) === active) : undefined;
-  (onScreen ?? pane).focus({ preventScroll: true });
+  if (hadFocus) focusTarget(pane)?.focus({ preventScroll: true });
 }
 
 /* ---- Wiring -------------------------------------------------------------------------------- */
@@ -341,6 +384,9 @@ function handBack(pane: HTMLElement) {
 const panes = [...document.querySelectorAll<HTMLElement>('.story .term')];
 const tryPane = document.querySelector<HTMLElement>('.term[data-demo="try"]');
 let active = 0;
+// The row whose pane shows: the active one, or, just past the story, the last pane while it is
+// still in view (it scrolls away with the story).
+let shownRow = 0;
 
 document.documentElement.classList.add('term-js');
 
@@ -372,22 +418,30 @@ panes.forEach(arm);
 // In story mode only the pane on screen is in the tab order; otherwise every pane is.
 function setFocusable() {
   const story = storyMode();
-  for (const p of panes) p.tabIndex = !story || Number(p.dataset.row) === active ? 0 : -1;
+  for (const p of panes) p.tabIndex = !story || Number(p.dataset.row) === shownRow ? 0 : -1;
 }
 
 /** Make a section active: show its pane and restart its loop; the other panes stand still. */
 function setActive(next: number) {
   if (next === active) return;
   active = next;
+  const last = panes.at(-1);
+  const lastInView = !!last && last.getBoundingClientRect().bottom > 0;
+  shownRow = active || (storyMode() && lastInView ? Number(last!.dataset.row) : 0);
+  // Classes and tab order first, so the pane focus may move to is already visible ...
   for (const p of panes) {
-    const on = Number(p.dataset.row) === active;
+    const on = Number(p.dataset.row) === shownRow;
     p.classList.toggle('is-active', on);
-    if (lives.has(p)) {
-      if (!on) handBack(p);
-    } else if (on) play(p);
+    if (lives.has(p)) continue;
+    if (on) play(p);
     else stop(p);
   }
   setFocusable();
+  // ... then hand back any prompt left on a pane that no longer shows, and move focus off a
+  // pane that has just been hidden.
+  for (const p of panes) if (lives.has(p) && Number(p.dataset.row) !== shownRow) handBack(p);
+  const f = document.activeElement as HTMLElement | null;
+  if (storyMode() && f && panes.includes(f) && Number(f.dataset.row) !== shownRow) focusTarget(f)?.focus({ preventScroll: true });
 }
 
 // The section most in view is the active one: its pane and its prose, by visible height.

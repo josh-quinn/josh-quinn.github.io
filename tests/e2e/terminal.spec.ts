@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { settle, wheelToRow } from '../helpers/motion';
 
 // The home terminal's interactive layer (docs/decisions/0008-home-terminal-js.md).
 const data = JSON.parse(readFileSync(join(process.cwd(), 'src/content/terminal.json'), 'utf8'));
@@ -10,11 +11,22 @@ test.use({ viewport: { width: 1280, height: 900 } });
 
 async function openFirst(page: Page) {
   await page.goto('/');
+  await settle(page);
   const pane = page.locator('.term[data-row="1"]');
   await pane.click();
   const input = pane.getByRole('textbox');
   await expect(input).toBeFocused();
   return { pane, input, log: pane.locator('[role="log"]') };
+}
+
+/**
+ * Tab moved focus off the prompt to something real. (Focus may land on the try-it pane below; the
+ * browser scrolls there and the story pane is handed back, so its input may no longer exist.)
+ */
+async function expectTabMovedOn(page: Page) {
+  await expect
+    .poll(() => page.evaluate(() => !!document.activeElement && document.activeElement !== document.body && !document.activeElement.matches('.term[data-row] .t-input')))
+    .toBe(true);
 }
 
 async function type(page: Page, cmd: string) {
@@ -118,14 +130,37 @@ test.describe('Tab completion', () => {
     await expect(input).toHaveValue('c');
   });
 
-  test('an empty line, or no match, lets Tab move focus on', async ({ page }) => {
-    const { input } = await openFirst(page);
+  test('a second Tab that would print the same candidates again moves focus on', async ({ page }) => {
+    const { input, log } = await openFirst(page);
+    await page.keyboard.type('c');
     await page.keyboard.press('Tab');
-    await expect(input).not.toBeFocused();
-    const again = await openFirst(page);
+    await expect(log).toContainText('cat  cd  clear');
+    await expect(input).toBeFocused();
+    await expect(log.locator('.t-line', { hasText: 'cat  cd  clear' })).toHaveCount(1);
+    await page.keyboard.press('Tab');
+    await expectTabMovedOn(page);
+  });
+
+  test('after a space, Tab completes what the command takes: cd lists only directories', async ({ page }) => {
+    const { input, log } = await openFirst(page);
+    await page.keyboard.type('cd ');
+    await page.keyboard.press('Tab');
+    await expect(log.locator('.t-line').last()).toHaveText('notes/  projects/');
+    await expect(input).toHaveValue('cd ');
+    await page.keyboard.press('Control+U');
+    await page.keyboard.type('whoami ');
+    await page.keyboard.press('Tab');
+    await expectTabMovedOn(page);
+  });
+
+  test('an empty line, or no match, lets Tab move focus on', async ({ page }) => {
+    await openFirst(page);
+    await page.keyboard.press('Tab');
+    await expectTabMovedOn(page);
+    await openFirst(page);
     await page.keyboard.type('xyz');
     await page.keyboard.press('Tab');
-    await expect(again.input).not.toBeFocused();
+    await expectTabMovedOn(page);
   });
 });
 
@@ -221,7 +256,8 @@ test('the outline-free input keeps a visible focus cue: a solid cursor and a hig
   expect(on.border).toBe('none');
   expect(on.shadow).toBe('none');
   expect(ratio(on.cursorFill, on.screen)).toBeGreaterThanOrEqual(3);
-  await page.keyboard.press('Tab');
+  // Blur in place: Tab would move focus to the try-it pane below and hand this pane back.
+  await input.evaluate((el) => (el as HTMLInputElement).blur());
   const off = await state();
   expect(off.cursorFill).toBe('rgba(0, 0, 0, 0)');
   expect(off.cursorOutline).toMatch(/^solid \dpx$/);
@@ -247,9 +283,9 @@ test('Esc leaves the prompt and puts focus back on the terminal', async ({ page 
 });
 
 test('Tab moves on from the prompt: no keyboard trap', async ({ page }) => {
-  const { input } = await openFirst(page);
+  await openFirst(page);
   await page.keyboard.press('Tab');
-  await expect(input).not.toBeFocused();
+  await expectTabMovedOn(page);
 });
 
 test('arrow up recalls history, arrow down returns to an empty line', async ({ page }) => {
@@ -284,15 +320,71 @@ test('scrolling to another chapter hands back to the CSS demo', async ({ page })
   await expect(pane).not.toHaveClass(/is-live/);
 });
 
-test('a chapter change while typing moves focus to the pane now on screen, not the page', async ({ page }) => {
-  const { input } = await openFirst(page);
-  await expect(input).toBeFocused();
-  await page.locator('.split-prose[data-row="2"]').evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    scrollBy(0, r.top + r.height / 2 - innerHeight / 2);
+test.describe('scrolling down while typing (story mode) keeps focus on a visible pane, never <body>', () => {
+  for (const [from, to] of [[1, 2], [1, 3], [2, 3]]) {
+    test(`from section ${from} to section ${to}, by mouse wheel`, async ({ page }) => {
+      await page.goto('/');
+      await settle(page);
+      if (from !== 1) await wheelToRow(page, from);
+      const pane = page.locator(`.term[data-row="${from}"]`);
+      await pane.click();
+      await expect(pane.getByRole('textbox')).toBeFocused();
+      await wheelToRow(page, to);
+      await expect(pane.locator('.t-input')).toHaveCount(0);
+      await expect(page.locator(`.term[data-row="${to}"]`)).toBeFocused();
+      expect(await page.evaluate(() => document.activeElement?.checkVisibility({ visibilityProperty: true }))).toBe(true);
+    });
+  }
+
+  test('past the end of the story, focus goes to something visible after it', async ({ page }) => {
+    await page.goto('/');
+    await settle(page);
+    await wheelToRow(page, 4);
+    const pane = page.locator('.term[data-row="4"]');
+    await pane.click();
+    await expect(pane.getByRole('textbox')).toBeFocused();
+    await page.mouse.move(900, 450);
+    for (let i = 0; i < 40 && (await page.evaluate(() => document.querySelector('.story')!.getBoundingClientRect().bottom > 0)); i++) {
+      await page.mouse.wheel(0, 240);
+      await page.waitForTimeout(40);
+    }
+    await expect(pane.locator('.t-input')).toHaveCount(0);
+    const focus = await page.evaluate(() => {
+      const a = document.activeElement!;
+      return { body: a === document.body, visible: a.checkVisibility({ visibilityProperty: true }), tab: (a as HTMLElement).tabIndex };
+    });
+    expect(focus).toEqual({ body: false, visible: true, tab: 0 });
   });
-  await expect(page.locator('.t-input')).toHaveCount(1); // only the try-it prompt is left
-  await expect(page.locator('.term[data-row="2"]')).toBeFocused();
+});
+
+test('cd in one pane updates every prompt, the try-it one included', async ({ page }) => {
+  const { pane } = await openFirst(page);
+  await type(page, 'cd notes');
+  await expect(pane.locator('.t-prompt .t-ps')).toHaveText('~/notes $');
+  await expect(page.locator('.term[data-demo="try"] .t-prompt .t-ps')).toHaveText('~/notes $');
+});
+
+test('history is shared: arrow up recalls the newest command from any pane, and arrow down restores the draft', async ({ page }) => {
+  await openFirst(page);
+  await type(page, 'whoami');
+  const tryPane = page.locator('.term[data-demo="try"]');
+  await tryPane.scrollIntoViewIfNeeded();
+  await tryPane.click();
+  const input = tryPane.getByRole('textbox');
+  await expect(input).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(input).toHaveValue('whoami');
+  await page.keyboard.press('ArrowDown');
+  await expect(input).toHaveValue('');
+  await type(page, 'ls');
+  await page.keyboard.type('cat no');
+  await page.keyboard.press('ArrowUp');
+  await expect(input).toHaveValue('ls');
+  await page.keyboard.press('ArrowUp');
+  await expect(input).toHaveValue('whoami');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await expect(input).toHaveValue('cat no');
 });
 
 test.describe('at 390px', () => {
