@@ -28,7 +28,8 @@ This repository is a public GitHub Pages site and the testbed for a small AI-eng
 
 - No CSS framework, no Tailwind, no component kit.
 - Colour, font and spacing come only from token custom properties defined from `DESIGN.md`.
-- No client-side JavaScript on CV pages.
+- No client-side JavaScript on CV pages (`/cv/` and everything under it), and none on any page except the one exception below.
+- **Scoped exception, home-page terminal only** (owner decision, 2026-11-24; `docs/decisions/0008-home-terminal-js.md`): the home page (`/`) may ship one first-party module script, for the terminal, and nothing else may ship JavaScript. The script has no dependencies, makes no network calls, and never uses `eval` or `innerHTML` with input. The terminal has a CSS or static fallback that works without JS, and is accessible (a labelled input, `aria-live` output, no keyboard trap). Every other page stays JS-free. A smoke test enforces it.
 - No third-party brand marks, logos or names in the repo.
 
 ## V. Tooling and process
@@ -43,4 +44,4 @@ This repository is a public GitHub Pages site and the testbed for a small AI-eng
 
 A task is done when `gate task <id>` passes and the owner merges the pull request. Nothing is auto-merged.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-22
+**Version**: 1.1.0 | **Ratified**: 2026-11-22 | **Last Amended**: 2026-11-24

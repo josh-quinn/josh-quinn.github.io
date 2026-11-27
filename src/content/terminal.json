@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "placeholder": true,
+    "note": "Fictional terminal content pending owner review. Swap in real content here after the audit."
+  },
+  "persona": {
+    "name": "Josh Quinn",
+    "role": "Sample Professional Title"
+  },
+  "home": "/home/sample",
+  "help": [
+    [
+      [
+        "bold",
+        "commands"
+      ]
+    ],
+    "  help               this list",
+    "  ls [dir], ll       list files",
+    "  cd <dir>           change directory",
+    "  cat <file>         print a file",
+    "  whoami             who is here",
+    "  notes add \"<text>\" add a note",
+    "  notes ls           list the notes",
+    "  notes tui          the notes as a board",
+    "  ./my-journey.sh    three pixel scenes",
+    "  clear, history",
+    [
+      [
+        "bold",
+        "keys"
+      ]
+    ],
+    "  Tab                complete",
+    "  ↑ ↓                history",
+    "  Ctrl+A / Ctrl+E    line start / end",
+    "  Alt+← / Alt+→      word back / forward",
+    "  Ctrl+W / Ctrl+U    delete word / line",
+    "  Ctrl+L             clear the screen",
+    [
+      [
+        "dim",
+        "Esc leaves; Tab on an empty line moves on"
+      ]
+    ]
+  ],
+  "notes": {
+    "start": [
+      {
+        "status": "done",
+        "text": "sketch the sample layout"
+      },
+      {
+        "status": "doing",
+        "text": "write the sample notes"
+      }
+    ],
+    "help": [
+      "usage: notes <command> [args]",
+      "",
+      "  add \"<text>\"   add a note (status: todo)",
+      "  ls            list the notes",
+      "  done <id>     mark a note done",
+      [
+        [
+          "dim",
+          "a fictional notes tool; the list lives only in this page"
+        ]
+      ]
+    ]
+  },
+  "journey": {
+    "intro": "loading 3 scenes …",
+    "outro": "done. more to come.",
+    "scenes": [
+      {
+        "id": "city",
+        "title": "a city at dusk",
+        "caption": "lights coming on, one window at a time",
+        "alt": "Pixel art: a row of buildings with lit windows under a rose and peach dusk sky",
+        "map": [
+          "pppppppppppppppppppppppp",
+          "pppppcccpppppppppppppppp",
+          "ppppcccccppppppppcccpppp",
+          "pppppppppppppppppppppppp",
+          "ooooooooooooooooSSSooooo",
+          "oooooooooooooooSSSSSoooo",
+          "ooQQQoooooooooooSSSooooo",
+          "ooQlQooooooqqqoooooooQQo",
+          "ooQQQooooooqlqooooooQQQQ",
+          "ooQlQooQQooqqqoooQQoQlQQ",
+          "qqQQQooQlooqlqqqoQQoQQQQ",
+          "qlQlQqqQQqqqqqlqqQlqQlQQ",
+          "qqQQQqlQlqqlqqqqqQQqQQQQ",
+          "qlQlQqqQQqqqqqlqqQlqQlQQ",
+          "qqQQQqqQlqqlqqqqqQQqQQQQ",
+          "kkkkkkkkkkkkkkkkkkkkkkkk",
+          "kkllkkkkkkllkkkkkkllkkkk",
+          "kkkkkkkkkkkkkkkkkkkkkkkk"
+        ]
+      },
+      {
+        "id": "books",
+        "title": "a stack of books",
+        "caption": "three to read, one plant to water",
+        "alt": "Pixel art: three books stacked on a wooden desk beside a potted plant",
+        "map": [
+          "mmmmmmmmmmmmmmmmmmmmmmmm",
+          "mmmmmmmmmmmmmmmmmmmmmmmm",
+          "mmmmmmmmmmmmmmmmmmmgmmmm",
+          "mmmmmmmmmmmmmmmmmmgGgmmm",
+          "mmmmmmmmmmmmmmmmmgGgGgmm",
+          "mmmmmmmmmmmmmmmmmmgGgmmm",
+          "mmmmmmmpppppppppmmmGmmmm",
+          "mmmmmmmplpppppppmmeeemmm",
+          "mmmmmtttttttttttmmeeemmm",
+          "mmmmmtltttttttttmmeeemmm",
+          "mmmmuuuuuuuuuuuummeeemmm",
+          "mmmmulluuuuuuuuummeeemmm",
+          "mmmoooooooooooooommmmmmm",
+          "mmmolooooooooooommmmmmmm",
+          "bbbbbbbbbbbbbbbbbbbbbbbb",
+          "DDDDDDDDDDDDDDDDDDDDDDDD",
+          "mmmDDmmmmmmmmmmmmmmmDDmm",
+          "mmmDDmmmmmmmmmmmmmmmDDmm"
+        ]
+      },
+      {
+        "id": "laptop",
+        "title": "a laptop and a mug",
+        "caption": "a few lines of code before the tea goes cold",
+        "alt": "Pixel art: an open laptop showing lines of code, with a steaming mug beside it",
+        "map": [
+          "ssssssssssssssssssssssss",
+          "ssssssssssssssssssssssss",
+          "sssQQQQQQQQQQQQQQsssssss",
+          "sssQwwwwwwwwwwwwQsssssss",
+          "sssQwktkkwwwwwwwQssscsss",
+          "sssQwwwkkkkwwwwwQsssscss",
+          "sssQwwkkkwwwwwwwQssscsss",
+          "sssQwwwwwtkkkwwwQsssssss",
+          "sssQwwwwwwwwwwwwQssppppp",
+          "sssQwkkwwwwwwwwwQssppppp",
+          "sssQQQQQQQQQQQQQQssppppQ",
+          "ssqqqqqqqqqqqqqqqqsppppQ",
+          "sqqqqqqqqqqqqqqqqqqpppps",
+          "bbbbbbbbbbbbbbbbbbbbbbbb",
+          "DDDDDDDDDDDDDDDDDDDDDDDD",
+          "ssDDssssssssssssssssDDss",
+          "ssDDssssssssssssssssDDss",
+          "ssDDssssssssssssssssDDss"
+        ]
+      }
+    ]
+  },
+  "demos": {
+    "whoami": {
+      "title": "whoami",
+      "label": "Terminal demo: who is here",
+      "foot": "whoami · now.txt",
+      "steps": [
+        {
+          "cmd": "whoami"
+        },
+        {
+          "cmd": "cat now.txt"
+        }
+      ]
+    },
+    "notes": {
+      "title": "notes",
+      "label": "Terminal demo: a small notes tool",
+      "foot": "notes · a sample CLI",
+      "steps": [
+        {
+          "cmd": "notes add \"water the plants\""
+        },
+        {
+          "cmd": "notes ls"
+        }
+      ]
+    },
+    "tui": {
+      "title": "notes tui",
+      "label": "Terminal demo: the notes board, a small text interface",
+      "foot": "notes tui · a sample board",
+      "steps": [
+        {
+          "cmd": "notes tui"
+        }
+      ]
+    },
+    "journey": {
+      "title": "~/.my-journey.sh",
+      "label": "Terminal demo: the journey so far, as three pixel-art scenes",
+      "foot": "three scenes · svg pixels, no images",
+      "steps": [
+        {
+          "cmd": "~/.my-journey.sh"
+        }
+      ]
+    },
+    "try": {
+      "title": "try it yourself",
+      "label": "Terminal: try it yourself",
+      "foot": "canned answers · nothing leaves the page",
+      "steps": [
+        {
+          "cmd": "help"
+        }
+      ]
+    }
+  },
+  "user": "sample",
+  "fs": {
+    "about.txt": [
+      "Sample summary text. This terminal belongs to a fictional persona.",
+      [
+        [
+          "dim",
+          "every answer here is canned; nothing you type leaves the page"
+        ]
+      ]
+    ],
+    "now.txt": [
+      [
+        [
+          "green",
+          "Sample Role A"
+        ],
+        " · Example Organisation Alpha"
+      ],
+      [
+        [
+          "green",
+          "Sample Degree"
+        ],
+        " · Example University One"
+      ],
+      [
+        [
+          "dim",
+          "reading a sample book, one chapter a week"
+        ]
+      ]
+    ],
+    ".my-journey.sh": [
+      "#!/bin/sh",
+      "# three small scenes, drawn in pixels",
+      "for scene in city books laptop; do",
+      "  show \"$scene\"",
+      "done"
+    ],
+    "notes": {
+      "ideas.md": [
+        "# ideas",
+        "- a lighter grid for the notes page",
+        "- a pixel scene for every season"
+      ],
+      "reading.md": [
+        "# reading",
+        "- a sample book, one chapter a week"
+      ]
+    },
+    "projects": {
+      "notes-cli": {
+        "README.md": [
+          "# notes",
+          "A tiny notes tool: add, ls, done, and a board view (notes tui)."
+        ]
+      },
+      "pixel-scenes": {
+        "README.md": [
+          "# pixel scenes",
+          "24x18 character maps drawn as SVG rects."
+        ]
+      }
+    }
+  },
+  "tui": {
+    "cmd": "notes tui",
+    "columns": [
+      "todo",
+      "doing",
+      "done"
+    ],
+    "start": {
+      "todo": [
+        "water the plants",
+        "sort the bookshelf"
+      ],
+      "doing": [
+        "write the sample notes"
+      ],
+      "done": [
+        "sketch the sample layout"
+      ]
+    },
+    "select": [
+      "todo",
+      0
+    ],
+    "actions": [
+      "down",
+      "up",
+      "move",
+      "move",
+      "left"
+    ],
+    "keys": "↑↓ select · ←→ column · m move · q quit"
+  }
+}

@@ -1,0 +1,637 @@
+/*
+ * Terminal (DESIGN.md "Terminal"; src/components/Terminal.astro). Tokens only.
+ *
+ * Layers, from the floor up:
+ *   1. Static, in every browser and without JS: each pane is an island showing its final
+ *      frame. Below 64rem a pane sits inline above its prose; from 64rem up, in a .split.story,
+ *      each pane sits beside its own prose, sticky within its row (the beat).
+ *   2. Demo loops (motion allowed): the screen of a pane with .is-playing runs a steps() clock,
+ *      --tick, on its own timer; every part of the demo appears at its tick (--t). The script
+ *      restarts a loop by re-adding .is-playing and pauses it with .is-paused
+ *      (animation-play-state). Scrolling never moves a loop (ADR 0008, Amendment 1).
+ *   3. Story mode (JS, motion allowed, 64rem and up): the panes share one sticky cell and the
+ *      script shows the pane for the section most in view (.is-active). With scroll-driven
+ *      support, the first pane starts centred over both columns and slides left as the page
+ *      scrolls (layout only; no demo is scroll-driven).
+ * Under prefers-reduced-motion: reduce only layer 1 applies, plus the static beat layout.
+ */
+/* ----- Page container ------------------------------------------------------------------ */
+
+.page-story {
+  max-width: calc(72rem + 2 * var(--gutter));
+}
+
+.hero {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.hero .links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+@media (min-width: 48rem) {
+  .hero,
+  .hero p {
+    text-align: center;
+  }
+
+  .hero .links {
+    justify-content: center;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----- The pane ------------------------------------------------------------------------ */
+
+/* The pane itself never scrolls (overflow: clip): when output grows, only the screen under the
+ * caption bar scrolls, so the bar stays in place. */
+figure.term {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  overflow: clip;
+  background-color: var(--term-bg);
+  color: var(--term-fg);
+}
+
+.t-bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  border-left: 2px solid var(--term-blue);
+  background-color: var(--term-bar);
+}
+
+.t-bar .t-title {
+  color: var(--term-fg);
+}
+
+.t-dot {
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background-color: var(--term-blue);
+}
+
+.t-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-term);
+  font-size: var(--text-term);
+  line-height: var(--leading-term);
+}
+
+.t-line {
+  display: block;
+  min-height: calc(var(--leading-term) * 1em);
+  hyphens: manual;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.t-out,
+.t-cmd {
+  display: block;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.t-cmd {
+  display: inline;
+  color: var(--term-fg);
+}
+
+.t-ps,
+.t-blue {
+  color: var(--term-blue);
+}
+
+.t-dim {
+  color: var(--term-dim);
+}
+
+.t-green {
+  color: var(--term-green);
+}
+
+.t-red {
+  color: var(--term-red);
+}
+
+.t-amber {
+  color: var(--term-amber);
+}
+
+.t-bold {
+  font-weight: var(--weight-strong);
+}
+
+.t-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  vertical-align: text-bottom;
+  background-color: var(--term-cursor);
+}
+
+.t-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  background-color: var(--term-foot);
+}
+
+.t-hint {
+  flex: none;
+  color: var(--term-blue);
+  font-family: var(--font-ui);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-body);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.t-hint::before {
+  margin-right: var(--space-1);
+  color: var(--muted);
+  content: "[" / "";
+}
+
+.t-hint::after {
+  margin-left: var(--space-1);
+  color: var(--muted);
+  content: "]" / "";
+}
+
+.t-hint[hidden] {
+  display: none;
+}
+
+@media (max-width: 47.99rem) {
+  .t-screen {
+    padding-inline: var(--space-3);
+    font-size: var(--text-term-small);
+  }
+}
+
+/* ----- Pixel scenes -------------------------------------------------------------------- */
+
+/* Spacing sits on the top of each scene and of the trailing line, so a paused loop can fold
+ * an unshown scene's space away with it (see "The demo loop"). */
+.t-scenes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.t-scene {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  margin: var(--space-2) 0 0;
+}
+
+.t-outro {
+  margin: var(--space-2) 0 0;
+}
+
+.px-scene {
+  display: block;
+  width: 96px;
+  height: 72px;
+  border: var(--border);
+  border-radius: var(--radius-1);
+}
+
+.t-scene-text {
+  display: grid;
+  gap: var(--space-1);
+  line-height: var(--leading-tight);
+}
+
+.px-sky { fill: var(--px-sky); }
+.px-cloud { fill: var(--px-cloud); }
+.px-sun { fill: var(--px-sun); }
+.px-rose { fill: var(--px-rose); }
+.px-peach { fill: var(--px-peach); }
+.px-stone { fill: var(--px-stone); }
+.px-stone-dark { fill: var(--px-stone-dark); }
+.px-lamp { fill: var(--px-lamp); }
+.px-ink { fill: var(--px-ink); }
+.px-cream { fill: var(--px-cream); }
+.px-wood { fill: var(--px-wood); }
+.px-wood-dark { fill: var(--px-wood-dark); }
+.px-teal { fill: var(--px-teal); }
+.px-blue { fill: var(--px-blue); }
+.px-grass { fill: var(--px-grass); }
+.px-grass-dark { fill: var(--px-grass-dark); }
+.px-orange { fill: var(--px-orange); }
+.px-snow { fill: var(--px-snow); }
+
+/* ----- Story prose and the sections after it ------------------------------------------- */
+
+.story-list {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.story-list li {
+  margin: 0;
+  padding: var(--space-3) 0;
+  border-top: var(--border);
+}
+
+.story-list li:last-child {
+  border-bottom: var(--border);
+}
+
+.story-list .label {
+  margin: 0;
+}
+
+.try,
+.colophon {
+  max-width: 48rem;
+  margin: var(--space-8) auto 0;
+}
+
+.try h2,
+.colophon h2 {
+  font-size: var(--text-section);
+}
+
+/* ----- Beat layout: 64rem and up, every browser ---------------------------------------- */
+
+/* Each pane and its prose share a grid row, so a sticky pane stays beside its own prose. */
+@media (min-width: 64rem) {
+  .story {
+    column-gap: var(--term-story-gap);
+    row-gap: var(--space-8);
+  }
+
+  .story > .split-media {
+    grid-column: 1;
+    grid-row: var(--row);
+  }
+
+  .story > .split-prose {
+    grid-column: 2;
+    grid-row: var(--row);
+  }
+}
+
+/* ----- Notes TUI board ------------------------------------------------------------------ */
+
+.t-tui {
+  margin: var(--space-2) 0 0;
+}
+
+/* Only the final frame exists outside a playing loop; the others are aria-hidden. */
+.t-frame:not(.t-final) {
+  display: none;
+}
+
+/* Three columns side by side while each gets 12ch; narrower (a phone with zoomed text), they
+ * stack, so the board never scrolls sideways and its words never break mid-letter. */
+.t-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12ch, 100%), 1fr));
+  gap: var(--space-2);
+}
+
+.t-col {
+  min-width: 0;
+  min-height: 7.5em;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border);
+  border-radius: var(--radius-1);
+}
+
+.t-col-h {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 0 0 var(--space-1);
+  padding: 0 0 var(--space-1);
+  border-bottom: var(--border);
+  color: var(--term-blue);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.t-col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.t-col li {
+  margin: 0;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-1);
+  overflow-wrap: anywhere;
+}
+
+.t-sel {
+  background-color: var(--term-sel);
+  color: var(--term-sel-fg);
+}
+
+.t-tui-foot {
+  margin: var(--space-2) 0 0;
+}
+
+/* ----- The demo loop -------------------------------------------------------------------- */
+
+/* The loop clock: an integer tick. Outside a playing loop it is far past every --t, so every
+ * part of every demo shows (the final frame). */
+@property --tick {
+  syntax: "<integer>";
+  inherits: true;
+  initial-value: 100000;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes t-clock {
+    from {
+      --tick: 0;
+    }
+
+    to {
+      --tick: var(--loop);
+    }
+  }
+
+  .t-dot,
+  .t-cursor {
+    animation: blink var(--blink) steps(1) infinite;
+  }
+
+  /* One tick per --term-tick, --loop ticks a loop, forever, on the pane's own timer. */
+  .term.is-playing .t-screen {
+    animation: t-clock calc(var(--loop) * var(--term-tick)) steps(var(--loop), jump-end) infinite;
+  }
+
+  .term.is-paused .t-screen {
+    animation-play-state: paused;
+  }
+
+  /* A part appears at its tick. While the loop plays it keeps its room, so the pane never
+   * changes size and nothing below it moves; once paused, unshown parts fold away so the
+   * prompt sits right under the shown text (the script holds the screen's height). */
+  .is-playing .t-r {
+    --on: clamp(0, var(--tick) - var(--t) + 1, 1);
+
+    opacity: var(--on);
+  }
+
+  .is-paused .t-r {
+    min-height: 0;
+    max-height: calc(var(--on) * 40em);
+    overflow: hidden;
+  }
+
+  .is-paused .t-scene.t-r,
+  .is-paused .t-outro.t-r,
+  .is-paused .t-tui.t-r {
+    margin-top: calc(var(--on) * var(--space-2));
+  }
+
+  /* A command types one character a tick. */
+  .is-playing .t-in .t-cmd {
+    display: inline-block;
+    width: calc(clamp(0, var(--tick) - var(--t), var(--chars)) * 1ch);
+    overflow: hidden;
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+
+  /* A pixel scene prints in eight stepped wipes. */
+  .is-playing .t-scene {
+    clip-path: inset(0 calc((1 - clamp(0, (var(--tick) - var(--t)) / 8, 1)) * 100%) 0 0);
+  }
+
+  /* The TUI's frames share one cell; each shows from its start tick to its end tick. */
+  .is-playing .t-tui {
+    display: grid;
+  }
+
+  .is-playing .t-frame {
+    display: block;
+    grid-area: 1 / 1;
+    opacity: clamp(0, min(var(--tick) - var(--s) + 1, var(--e) - var(--tick)), 1);
+  }
+}
+
+/* ----- Story mode ---------------------------------------------------------------------- */
+
+/* Needs the script (.term-js on the root): it picks the pane to show. Without JS, or with
+ * reduced motion, the static beat layout above applies. */
+@media (prefers-reduced-motion: no-preference) and (min-width: 64rem) {
+  .term-js .story {
+    row-gap: 0;
+  }
+
+  /* The panes leave their wrappers and share one cell spanning every row. */
+  .term-js .story > .split-media {
+    display: contents;
+  }
+
+  .term-js .story .term {
+    visibility: hidden;
+    grid-row: 1 / -1;
+    grid-column: 1;
+    height: var(--term-h);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--duration-fast) var(--ease),
+      visibility 0s linear var(--duration-fast);
+  }
+
+  .term-js .story .term.is-active {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity var(--duration-fast) var(--ease);
+  }
+
+  /* The story pane has a fixed height: its screen clips the demo, and scrolls once live. */
+  .term-js .story .term .t-screen:not(.t-live-on) {
+    overflow: clip;
+  }
+
+  .term-js .story > .split-prose {
+    min-height: 80vh;
+    padding: var(--space-7) 0;
+  }
+
+  .term-js .story > .split-prose[data-row="1"] {
+    min-height: 0;
+    padding-top: 0;
+  }
+
+  /* A chapter's text stays beside its pane while the chapter scrolls. */
+  .term-js .story > .split-prose:not([data-row="1"]) > section {
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
+/* Layout motion only: the first pane slides from the centre into the left column as the page
+ * scrolls, and the first chapter fades in beside it. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) and (min-width: 64rem) {
+    /* Half the gap and the prose column: the pane starts centred over both columns. */
+    @keyframes t-home {
+      from {
+        translate: calc((var(--term-story-gap) + var(--measure)) / 2) 0;
+      }
+    }
+
+    @keyframes t-copy-in {
+      from {
+        opacity: 0;
+      }
+    }
+
+    /* The page-scroll timeline goes through a custom property: the CSS minifier would otherwise
+     * fold a literal scroll(root) into the animation shorthand, which browsers reject. */
+    .term-js .story {
+      --t-page: scroll(root);
+    }
+
+    .term-js .story .term[data-pos="first"] {
+      z-index: 2;
+      animation: t-home linear both;
+      animation-timeline: var(--t-page);
+      animation-range: 0 40vh;
+    }
+
+    .term-js .story > .split-prose[data-row="1"] {
+      animation: t-copy-in linear both;
+      animation-timeline: var(--t-page);
+      animation-range: 12vh 42vh;
+    }
+  }
+}
+
+/* ----- Interactive layer (src/scripts/terminal.ts; home page only) --------------------- */
+
+.term-js .term {
+  cursor: text;
+}
+
+.term.is-live {
+  z-index: 3;
+}
+
+.t-screen.t-live-on {
+  max-height: 26rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: no-preference) and (min-width: 64rem) {
+  .term-js .story .t-screen.t-live-on {
+    max-height: none;
+  }
+}
+
+/* The focused pane: its caption bar turns slate (5.5:1 against the resting bar). */
+.term:focus-within .t-bar {
+  border-left-color: var(--term-bar-on);
+  background-color: var(--term-bar-on);
+}
+
+.term:focus-within .t-bar .t-title {
+  color: var(--term-bar-on-fg);
+}
+
+.term:focus-within .t-dot {
+  background-color: var(--term-bar-on-fg);
+}
+
+/* Live, the prompt below the frame replaces the demo's idle prompt line. */
+.is-live .t-feed .t-end {
+  display: none;
+}
+
+.t-prompt {
+  display: flex;
+  align-items: baseline;
+}
+
+/* The input looks like a terminal line: no box, no outline. Its text is drawn by .t-echo,
+ * with a block cursor that is solid while the input has focus and hollow when it has not. */
+.t-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.t-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background-color: transparent;
+  color: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: transparent;
+}
+
+.t-input:focus,
+.t-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.t-echo {
+  display: block;
+  overflow: hidden;
+  color: var(--term-fg);
+  white-space: pre;
+  pointer-events: none;
+}
+
+.t-block {
+  display: inline-block;
+  min-width: 1ch;
+  outline: 1px solid var(--term-cursor);
+  outline-offset: -1px;
+}
+
+.t-field:focus-within .t-block {
+  background-color: var(--term-cursor);
+  color: var(--term-bg);
+}
+
+.t-try .t-screen {
+  min-height: 12rem;
+}

@@ -1,13 +1,98 @@
-import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
-import { htmlFiles } from '../helpers/dist';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
+import { expect, test, type Page } from '@playwright/test';
+import { distDir, htmlFiles, urlPathOf } from '../helpers/dist';
 
-// DESIGN.md: technical paper, islands, CSS-only motion (none under reduced motion), no client JS.
+// DESIGN.md: technical paper, islands, CSS-only motion (none under reduced motion).
+// Client JS policy (docs/decisions/0008-home-terminal-js.md): only the home page may ship
+// one first-party module script, for the terminal. Every other page is JS-free.
 
-test('no built page ships client JavaScript', () => {
-  const files = htmlFiles();
-  expect(files.length).toBeGreaterThan(0);
-  for (const f of files) expect(readFileSync(f, 'utf8'), f).not.toMatch(/<script\b/i);
+/**
+ * Inspect built HTML through a real DOM (a context with JavaScript disabled, so nothing in the
+ * page can run). Regexes over markup are evadable (`<a/onclick=x>`, a `>` inside a value).
+ */
+type Findings = { scripts: { type: string; src: string; inline: boolean; text: string }[]; problems: string[] };
+
+async function inspect(page: Page, html: string): Promise<Findings> {
+  await page.setContent(html, { waitUntil: 'domcontentloaded' });
+  return page.evaluate(() => {
+    const problems: string[] = [];
+    const scripts: { type: string; src: string; inline: boolean; text: string }[] = [];
+    // Browsers drop tab, CR and LF anywhere in a URL and trim leading C0 controls and spaces.
+    const normalise = (v: string) => v.replace(/[\t\n\r]/g, '').replace(/^[\x00-\x20]+/, '');
+    const scan = (root: Document | DocumentFragment) => {
+      for (const s of root.querySelectorAll('script')) {
+        scripts.push({
+          type: s.getAttribute('type') ?? '',
+          src: s.getAttribute('src') ?? '',
+          inline: !s.hasAttribute('src'),
+          text: s.textContent ?? '',
+        });
+      }
+      for (const el of root.querySelectorAll('*')) {
+        for (const name of el.getAttributeNames()) {
+          if (/^on/i.test(name)) problems.push(`<${el.localName}> has event-handler attribute ${name}`);
+          // Any attribute, not a fixed list (href, xlink:href, action, formaction, src, data, ...).
+          if (/^javascript:/i.test(normalise(el.getAttribute(name) ?? ''))) {
+            problems.push(`<${el.localName} ${name}> is a javascript: URL`);
+          }
+        }
+        if (el.localName === 'iframe' && el.hasAttribute('srcdoc')) problems.push('iframe with srcdoc');
+        if (el.localName === 'base' && /^\s*(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(el.getAttribute('href') ?? '')) {
+          problems.push('<base href> points off-site');
+        }
+        if (el instanceof HTMLTemplateElement) scan(el.content);
+      }
+    };
+    scan(document);
+    return { scripts, problems };
+  });
+}
+
+test.describe('client JavaScript policy', () => {
+  // JS disabled: setContent parses the markup without executing anything in it.
+  test.use({ javaScriptEnabled: false });
+
+  test('no built page except the home page ships client JavaScript', async ({ page }) => {
+    const files = htmlFiles();
+    expect(files.length).toBeGreaterThan(0);
+    const others = files.filter((f) => urlPathOf(f) !== '/');
+    expect(others.length).toBeGreaterThan(0);
+    for (const f of others) {
+      const { scripts, problems } = await inspect(page, readFileSync(f, 'utf8'));
+      expect(scripts, `${f} has a <script>`).toEqual([]);
+      expect(problems, f).toEqual([]);
+    }
+  });
+
+  test('the home page ships at most one first-party module script and nothing else', async ({ page }) => {
+    const home = htmlFiles().find((f) => urlPathOf(f) === '/');
+    expect(home, 'dist/index.html is built').toBeTruthy();
+    const { scripts, problems } = await inspect(page, readFileSync(home!, 'utf8'));
+    expect(scripts.length, 'at most one <script> on the home page').toBeLessThanOrEqual(1);
+    for (const s of scripts) {
+      expect(s.type, 'the only script is type="module"').toBe('module');
+      // Astro may inline a small module (no src) or emit /_astro/*.js. A src must be first-party:
+      // no scheme and no protocol-relative "//" prefix.
+      if (!s.inline) expect(s.src, 'module src is first-party').not.toMatch(/^\s*(?:[a-z][a-z0-9+.-]*:|\/\/)/i);
+      // An inline module must not reach off-site: no URL scheme, no "//" import, no dynamic import().
+      else expect(s.text, 'inline module is self-contained').not.toMatch(/https?:|\bimport\s*\(|\b(?:import|from)\s*["']\s*\/\//i);
+    }
+    expect(problems, 'home page').toEqual([]);
+  });
+
+  test('built JavaScript files live only under the Astro assets directory', () => {
+    const stray: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (/\.m?js$/i.test(e.name) && !relative(distDir, full).startsWith('_astro' + sep)) stray.push(full);
+      }
+    };
+    walk(distDir);
+    expect(stray).toEqual([]);
+  });
 });
 
 test.describe('home page', () => {
@@ -57,7 +142,7 @@ test.describe('home page', () => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/');
     const names = await page.evaluate(() =>
-      ['.reveal', 'h1', '.island', '.cursor', '.typed'].map((sel) => {
+      ['.reveal', 'h1', '.island', '.cursor', '.term.is-playing .t-screen'].map((sel) => {
         const el = document.querySelector(sel);
         return el ? getComputedStyle(el).animationName : 'missing';
       }),

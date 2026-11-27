@@ -1,0 +1,22 @@
+---
+/* One pixel scene: an inline SVG of <rect>s with crisp edges, pastel fills by class (terminal.css). */
+import { renderRuns, SCENE_W, SCENE_H, type Scene } from '../lib/pixels';
+
+interface Props {
+  scene: Scene;
+  alt: string;
+}
+const { scene, alt } = Astro.props;
+const runs = renderRuns(scene);
+---
+<svg
+  class="px-scene"
+  viewBox={`0 0 ${SCENE_W} ${SCENE_H}`}
+  width={SCENE_W * 4}
+  height={SCENE_H * 4}
+  shape-rendering="crispEdges"
+  role="img"
+  aria-label={alt}
+>
+  {runs.map((r) => <rect class={`px-${r.cls}`} x={r.x} y={r.y} width={r.w} height="1" />)}
+</svg>

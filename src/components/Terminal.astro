@@ -1,0 +1,129 @@
+---
+/*
+ * Terminal (DESIGN.md "Terminal"; styles in terminal.css). A light terminal island: a caption
+ * bar with a live dot, a screen of transcript steps and a caption strip. Every command and
+ * every line of output is real DOM text, so the final frame is there without JavaScript and
+ * under reduced motion.
+ *
+ * Each demo is a loop: buildLoop gives every part a tick (--t) at which it appears, and the
+ * screen's CSS clock (--tick, terminal.css) plays them. The script only starts, restarts and
+ * pauses the clock (ADR 0008, Amendment 1).
+ * Layouts: standalone (row 0), beat (one pane beside its prose, in a .split) and story
+ * (several panes in one .split.story; the script shows the one for the section in view).
+ */
+import PixelScene from './PixelScene.astro';
+import { buildLoop, type Line, type Output, type SceneData, type Seg, type Step, type TuiFrame } from '../lib/terminal';
+import '../styles/terminal.css';
+
+export interface PlayedStep extends Step {
+  out: Output;
+}
+
+interface Props {
+  name: string;
+  title: string;
+  label: string;
+  foot: string;
+  steps: PlayedStep[];
+  row?: number;
+  pos?: 'first' | 'mid' | 'last' | 'solo';
+  scenes?: SceneData[];
+  journey?: { intro: string; outro: string };
+  frames?: TuiFrame[];
+  class?: string;
+}
+const { name, title, label, foot, steps, row = 0, pos = 'solo', scenes = [], journey, frames = [], class: extra } = Astro.props;
+
+const hasOut = (o: Output) => (o.kind === 'lines' && o.lines.length > 0) || o.kind === 'journey';
+const plan = buildLoop(
+  steps.map((s) => ({ chars: s.cmd.length, out: hasOut(s.out) })),
+  { scenes: scenes.length, frames: frames.length },
+);
+const segs = (line: Line): Seg[] => (typeof line === 'string' ? [line] : line);
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+<figure
+  class:list={['island', 'term', extra]}
+  data-demo={name}
+  data-row={row}
+  data-pos={pos}
+  style={row ? `--row: ${row}` : undefined}
+  aria-label={label}
+>
+  <figcaption class="island-bar t-bar">
+    <span class="label t-title">{title}</span>
+    <span class="t-dot" aria-hidden="true"></span>
+  </figcaption>
+  <div class="t-screen" style={`--loop: ${plan.loop}`}>
+    <div class="t-feed">
+      {steps.map((s, i) => (
+        <div class="t-step">
+          <div class="t-line t-in t-r" style={`--t: ${plan.steps[i].cmd}; --chars: ${s.cmd.length}`}>
+            <span class="t-ps" aria-hidden="true">~ $ </span><kbd class="t-cmd">{s.cmd}</kbd>
+          </div>
+          {s.out.kind === 'lines' && s.out.lines.length > 0 && (
+            <samp class="t-out t-r" style={`--t: ${plan.steps[i].out}`}>
+              {s.out.lines.map((line) => (
+                <span class="t-line">{segs(line).map((g) => (typeof g === 'string' ? g : <span class={`t-${g[0]}`}>{g[1]}</span>))}</span>
+              ))}
+            </samp>
+          )}
+          {s.out.kind === 'journey' && journey && (
+            <samp class="t-out t-r" style={`--t: ${plan.steps[i].out}`}>
+              <span class="t-line t-dim">{journey.intro}</span>
+            </samp>
+          )}
+        </div>
+      ))}
+      {scenes.length > 0 && (
+        <ol class="t-scenes">
+          {scenes.map((sc, i) => (
+            <li class="t-scene t-r" style={`--t: ${plan.scenes[i]}`}>
+              <PixelScene scene={sc} alt={sc.alt} />
+              <span class="t-scene-text">
+                <span class="t-green">{pad(i + 1)}/{pad(scenes.length)} {sc.title}</span>
+                <span class="t-dim">{sc.caption}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {scenes.length > 0 && journey && <div class="t-line t-dim t-outro t-r" style={`--t: ${plan.after}`}>{journey.outro}</div>}
+      {frames.length > 0 && (
+        <div class="t-tui t-r" style={`--t: ${plan.frames[0].start}`}>
+          {frames.map((f, i) => {
+            const final = i === frames.length - 1;
+            return (
+              <div
+                class:list={['t-frame', { 't-final': final }]}
+                style={`--s: ${plan.frames[i].start}; --e: ${plan.frames[i].end}`}
+                aria-hidden={final ? undefined : 'true'}
+              >
+                <div class="t-board">
+                  {f.columns.map((c) => (
+                    <div class="t-col">
+                      <span class="t-col-h">{c.name} <span class="t-dim">{c.items.length}</span></span>
+                      <ul>
+                        {c.items.map((it) => <li class:list={{ 't-sel': it.selected }}>{it.text}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+                <div class="t-line t-dim t-tui-foot">{f.status}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {frames.length === 0 && (
+        <div class="t-line t-end t-r" style={`--t: ${plan.end}`}>
+          <span class="t-ps" aria-hidden="true">~ $ </span><span class:list={['t-cursor', { cursor: pos === 'first' }]} aria-hidden="true"></span>
+        </div>
+      )}
+    </div>
+  </div>
+  <div class="island-foot t-foot">
+    <span class="label">{foot}</span>
+    <span class="t-hint" hidden>click to type</span>
+  </div>
+</figure>
