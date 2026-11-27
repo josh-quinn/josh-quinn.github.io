@@ -38,3 +38,16 @@ Option 3.
 - `dist/index.html` has at most one `<script>`, which is `type="module"` and either inline or with a first-party `src` (no scheme, no `//` prefix);
 - the scan also covers `<template>` contents, any attribute holding a `javascript:` URL (after the browser's tab/CR/LF and leading-control stripping), and `<base href>` pointing off-site; an inline home module may not contain `http(s):`, a `//` import or a dynamic `import()`;
 - built `.js` files exist only under `dist/_astro/`.
+
+## Amendment 1 (2026-11-27): the script may control the demo loops
+
+Owner feedback after trying the terminal (ruling R55): the demos should be loops that restart for each section, not typing scrubbed by the scroll position.
+
+- **The module is also the demo controller.** It picks the active section with an IntersectionObserver (the section most in view). It restarts that section's loop from the start by re-adding a class (`.is-playing`), and it pauses or resumes the loop with `animation-play-state` (`.is-paused`).
+- **The loops stay CSS.** Each loop is a time-based keyframe animation with `steps()`: an integer clock (`@property --tick`) on the pane's screen, from which every part of the demo works out whether it is shown. JS never animates frame by frame and never maps the scroll position to a frame. No demo uses a scroll or view timeline.
+- **What JS shows.** In story mode (motion allowed, 64rem and up) the script also chooses which pane is shown (`.is-active`). Without JS the panes never stack: each shows its final frame beside its own chapter.
+- **Everything else in this ADR is unchanged.** There is still one first-party module on the home page only, with no dependencies, no network, no `eval` and no `innerHTML` with input. The page is complete without JS. Under reduced motion nothing loops and every pane shows its final frame.
+- **Enforcement.**
+  - `tests/smoke/design.spec.ts` is unchanged in its JS-policy block.
+  - `tests/smoke/terminal.spec.ts` checks that no part of a demo runs on a scroll or view timeline.
+  - `tests/e2e/terminal-loop.spec.ts` checks that a loop restarts on re-entry, is not scrubbed by scrolling, and pauses in place.

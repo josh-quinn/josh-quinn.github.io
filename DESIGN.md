@@ -87,19 +87,28 @@ All in `src/styles/components.css`: CSS only, tokens only. The one JavaScript ex
 - **Terminal** (`src/components/Terminal.astro`, styles in `src/styles/terminal.css`): a light terminal island, as on the reference.
   - **Markup.** A `figure.island.term` with an `aria-label`:
     - a caption bar (`figcaption.island-bar.t-bar`): a mono label title, a 2px `--term-blue` rule on the left and a live dot;
-    - a screen (`.t-screen`) of steps, each a `kbd.t-cmd` command after an `aria-hidden` `$` and a `samp.t-out` of lines, with tones `.t-dim`, `.t-green`, `.t-red`, `.t-amber`, `.t-blue` and `.t-bold`;
+    - a screen (`.t-screen`) of steps, each a `kbd.t-cmd` command after an `aria-hidden` `~ $` and a `samp.t-out` of lines, with tones `.t-dim`, `.t-green`, `.t-red`, `.t-amber`, `.t-blue` and `.t-bold`. The screen may also hold pixel scenes (`.t-scenes`), or a TUI (`.t-tui`): a stack of `.t-frame` boards with todo, doing and done columns and a selected row (`.t-sel`, `--term-sel`). Only the last frame (`.t-final`) shows outside a playing loop; the others are `aria-hidden`;
     - a caption strip (`.island-foot.t-foot`): a mono label and, with JS, a `[ click to type ]` hint.
-  - **Content.** Every transcript is printed at build time by the canned session in `src/lib/terminal.ts` from `src/content/terminal.json`, the one data file for terminal content. It is real DOM text, so the final transcript is there without JS and under reduced motion. Pixel scenes are inline SVG (`PixelScene.astro`, 24x18 maps, `role="img"` with alt text, `--px-*` fills).
+  - **Content.** Every transcript is printed at build time by the canned session in `src/lib/terminal.ts` from `src/content/terminal.json`, the one data file for terminal content. That file holds the persona, a small fictional file tree, the TUI's start board and key actions, and the help text. It is real DOM text, so the final frame is there without JS and under reduced motion. Pixel scenes are inline SVG (`PixelScene.astro`, 24x18 maps, `role="img"` with alt text, `--px-*` fills).
   - **Layouts.**
     - *Standalone:* one pane on its own (the home page's "try it" terminal).
     - *Beat:* a pane in a `.split-media` beside its `.split-prose`, sticky within its row. In `.split.story` this is the static layout from 64rem up: each pane sits beside its own chapter.
-    - *Story* (`.split.story`, scroll-driven, see "Motion"): the panes share one sticky cell in the left column. The first starts centred over both columns and slides left as the page scrolls; each chapter's view timeline (`--ch-<row>`) shows its own pane and types its commands. Each chapter's text stays sticky beside it.
+    - *Story* (`.split.story`, needs the script, see "Motion"): the panes share one sticky cell in the left column, and the script shows the pane for the section most in view (`.is-active`). The first starts centred over both columns and slides left as the page scrolls. Each chapter's text stays sticky beside it. Without JS, or with reduced motion, the beat layout applies.
     - Below 64rem every pane sits inline above its prose, never sticky.
-  - **Interactive layer** (home page only, ADR 0008): `src/scripts/terminal.ts` lets a reader click a pane, or press Enter on it, to type. It uses a visually hidden label on the input, an `aria-live="polite"` log, Esc or Tab to leave, and the site's focus ring.
+  - **Interactive layer** (home page only, ADR 0008 and Amendment 1): `src/scripts/terminal.ts`.
+    - **Opening the prompt:** a reader clicks a pane, or presses Enter on it. The loop pauses where it is and a prompt appears below the frame.
+    - **Accessibility:** a visually hidden label on the input, and an `aria-live="polite"` log. Esc leaves. Tab completes; on an empty line, or when nothing matches, Tab moves on.
+    - **The input:** it looks like a terminal line, with no box and no outline. Its focus cue is a block cursor (`.t-block`), solid while focused and hollow when not. The focused pane's caption bar also turns slate (`--term-bar-on`, 5.5:1 against the resting bar). The pane itself keeps the site's focus ring.
+    - **Commands:** `help`, `ls`, `ll`, `cd` (the prompt shows the cwd), `cat`, `whoami`, `notes …`, `./my-journey.sh`, `clear` and `history`.
+    - **Keys:** readline keys Ctrl+L/A/E/W/U and Alt+←/→, and ↑/↓ for history. Cmd/Meta combinations are never intercepted.
 
 ## Motion
 
-CSS only. The only client JavaScript on the site is the home-page terminal's input and output (`docs/decisions/0008-home-terminal-js.md`): by default the terminal is a CSS-only scroll-driven demo, and clicking it or pressing Enter on it swaps in a small self-contained mock terminal with canned output. CV pages and every other page ship no JavaScript. JS never drives motion, and the mock terminal respects reduced motion. Every animation is declared inside `@media (prefers-reduced-motion: no-preference)`, so with reduced motion nothing moves.
+CSS only. The only client JavaScript on the site is the home-page terminal's script (`docs/decisions/0008-home-terminal-js.md` and its Amendment 1). It is the demo controller and the mock terminal:
+- it picks the section most in view, restarts that section's CSS loop by re-adding a class, and pauses or resumes it with `animation-play-state`;
+- clicking a pane, or pressing Enter on it, pauses the loop and adds a prompt with canned output.
+
+JS never animates frame by frame and never maps scroll position to a frame. The mock terminal respects reduced motion. CV pages and every other page ship no JavaScript. Every animation is declared inside `@media (prefers-reduced-motion: no-preference)`, so with reduced motion nothing moves.
 
 - **Rise and fade:** `.reveal` lines (opening label, paragraph, metadata) fade in and rise by `--rise` (6px), staggered by `--stagger` (90ms) through `.d1`-`.d6`.
 - **Focus-in:** the `h1` comes into focus from a slight blur.
@@ -107,8 +116,12 @@ CSS only. The only client JavaScript on the site is the home-page terminal's inp
 - **Cursor:** the terminal cursor blinks (`--blink` 1.1s, stepped).
 - **Typed line:** a `.typed` terminal command types itself once (`--duration-type` 1.2s, one step per character) after the panel enters; its `.typed-out` output then appears.
 - Durations: `--duration-enter` 700ms with `--ease-out`; `--duration-fast` 150ms for colour fades on links.
-- **Terminal typing:** the on-load pane types each command by time (`--term-char` 70ms a character, `steps(n, jump-start)`), then shows its output. Other panes type as their chapter scrolls (`--at`, the step's place in the chapter), and pixel scenes print with a stepped wipe.
-- **Terminal story:** scroll-driven (`animation-timeline: scroll()` and `view()`, `timeline-scope`). It applies only under `@supports (animation-timeline: view()) and (timeline-scope: --a)`, with motion allowed and at 64rem or wider; otherwise the static beat layout applies. `steps()` uses `jump-start`, because scroll-driven animations stop just short of 100%. The page-scroll timeline is set through a custom property (`--t-page`), so the CSS minifier cannot fold it into the `animation` shorthand.
+- **Terminal loops:** each pane's demo is a loop on its own timer: a time-based `steps()` clock, `@property --tick`, on `.t-screen`, one tick per `--term-tick` (70ms) and `--loop` ticks a loop.
+  - Every part of the demo appears at its tick (`--t`, planned by `buildLoop`). A command types one character a tick, a pixel scene wipes in over eight ticks, and a TUI frame shows from its start tick to its end tick.
+  - While a loop plays, every part keeps its room, so the pane never changes size. When paused, unshown parts fold away under the prompt.
+  - Outside a playing loop, and under reduced motion, `--tick` sits far past every part, so the final frame shows.
+  - Scrolling never moves a loop: no demo uses a scroll or view timeline.
+- **Terminal story:** needs the script, motion allowed, and 64rem or wider. With `animation-timeline: scroll()` support, the first pane slides from the centre into the left column and the first chapter fades in as the page scrolls. This is layout motion only. The page-scroll timeline is set through a custom property (`--t-page`), so the CSS minifier cannot fold it into the `animation` shorthand. Panes swap with a `--duration-fast` fade.
 
 ## Tokens
 
@@ -121,7 +134,7 @@ All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unl
 - **Borders:** `--border-width` 1px, `--border` (hairline in `--line`), `--border-strong`.
 - **Radii:** `--radius-0` 0, `--radius-1` 2px, `--radius-2` 4px. Nothing rounder.
 - **Shadow (this site's rule):** `--shadow-focus` only (the focus ring). This site's pages use **no drop shadows**: islands and panels are separated by hairline borders, never by shadows. How the design critic scores a shadow on a candidate page is set in `evals/design-critic/rubric.md`.
-- **Terminal:** `--term-bg` (= `--paper-cool`), `--term-fg` `#394352` (8.8:1), `--term-dim` `#5d636b` (5.4:1), `--term-green` `#33684f` (5.7:1), `--term-red` `#962a3e` (6.9:1), `--term-amber` `#7d6206` (5.1:1), `--term-blue` (= `--link`, 5.7:1), `--term-bar` `#e9edf0`, `--term-foot` (= `--paper-raised`), `--term-cursor`. Every text colour meets AA (at least 4.5:1, ratios on `--term-bg`) on the bar, the screen and the strip. Also `--font-term`, `--text-term` 0.8rem, `--text-term-small` 0.72rem, `--leading-term` 1.5, `--term-h` (the story pane's height, `clamp(22rem, 100vh - 8rem, 28rem)`), `--term-char` 70ms and `--term-story-gap` (= `--space-7`). The story container `.page-story` is 72rem wide.
+- **Terminal:** `--term-bg` (= `--paper-cool`), `--term-fg` `#394352` (8.8:1), `--term-dim` `#5d636b` (5.4:1), `--term-green` `#33684f` (5.7:1), `--term-red` `#962a3e` (6.9:1), `--term-amber` `#7d6206` (5.1:1), `--term-blue` (= `--link`, 5.7:1), `--term-bar` `#e9edf0`, `--term-foot` (= `--paper-raised`), `--term-cursor`. Every text colour meets AA (at least 4.5:1, ratios on `--term-bg`) on the bar, the screen and the strip. Also `--font-term`, `--text-term` 0.8rem, `--text-term-small` 0.72rem, `--leading-term` 1.5, `--term-h` (the story pane's height, `clamp(22rem, 100vh - 8rem, 28rem)`), `--term-tick` 70ms (one loop tick), `--term-bar-on` and `--term-bar-on-fg` (the focused pane's caption bar, = `--term-blue` and `--term-bg`), `--term-sel` and `--term-sel-fg` (the TUI's selected row, 5.7:1), and `--term-story-gap` (= `--space-7`). The story container `.page-story` is 72rem wide.
 - **Pixel scenes:** `--px-*` (sky, cloud, sun, rose, peach, stone, stone-dark, lamp, ink, cream, wood, wood-dark, teal, blue, grass, grass-dark, orange, snow). These are soft pastels, decorative only and never used for text. None is purple.
 - **Motion:** `--duration-fast` 150ms, `--duration` 400ms, `--duration-enter` 700ms, `--stagger` 90ms, `--rise` 6px, `--blink` 1.1s, `--duration-type` 1.2s, `--ease`, `--ease-out`. Nothing animates under `prefers-reduced-motion: reduce`.
 
@@ -132,7 +145,7 @@ All in `src/styles/tokens.css`. Components use only these (stylelint: `scale-unl
 - An oversized hero, or a giant centred headline.
 - Emoji icons, and stock icon sets.
 - Generic card grids, and, on this site's pages, drop shadows on cards or panels (see "Shadow").
-- Client-side JavaScript, including for motion. The sole exception is the home-page terminal's input and output (see "Motion").
+- Client-side JavaScript, including for motion. The sole exception is the home-page terminal's script (see "Motion"): it starts, restarts and pauses CSS loops and runs the mock terminal, but never animates anything itself.
 - Purple or indigo accents.
 - Pure black text or a pure white background.
 - Third-party names, logos or marks on the built site.
