@@ -8,39 +8,6 @@
     "role": "Sample Professional Title"
   },
   "home": "/home/sample",
-  "files": {
-    "now.txt": [
-      [
-        [
-          "green",
-          "Sample Role A"
-        ],
-        " · Example Organisation Alpha"
-      ],
-      [
-        [
-          "green",
-          "Sample Degree"
-        ],
-        " · Example University One"
-      ],
-      [
-        [
-          "dim",
-          "reading a sample book, one chapter a week"
-        ]
-      ]
-    ],
-    "about.txt": [
-      "Sample summary text. This terminal belongs to a fictional persona.",
-      [
-        [
-          "dim",
-          "every answer here is canned; nothing you type leaves the page"
-        ]
-      ]
-    ]
-  },
   "help": [
     [
       [
@@ -49,18 +16,31 @@
       ]
     ],
     "  help               this list",
-    "  ls                 what is here",
+    "  ls [dir], ll       list files",
+    "  cd <dir>           change directory",
+    "  cat <file>         print a file",
     "  whoami             who is here",
-    "  cat <file>         now.txt, about.txt",
     "  notes add \"<text>\" add a note",
     "  notes ls           list the notes",
-    "  ./my-journey.sh    the journey so far, in pixels",
-    "  clear              clear the screen",
-    "  history            what you typed; also the up and down arrows",
+    "  notes tui          the notes as a board",
+    "  ./my-journey.sh    three pixel scenes",
+    "  clear, history",
+    [
+      [
+        "bold",
+        "keys"
+      ]
+    ],
+    "  Tab                complete",
+    "  ↑ ↓                history",
+    "  Ctrl+A / Ctrl+E    line start / end",
+    "  Alt+← / Alt+→      word back / forward",
+    "  Ctrl+W / Ctrl+U    delete word / line",
+    "  Ctrl+L             clear the screen",
     [
       [
         "dim",
-        "esc or tab leaves the prompt"
+        "Esc leaves; Tab on an empty line moves on"
       ]
     ]
   ],
@@ -180,15 +160,12 @@
       "foot": "whoami · now.txt",
       "steps": [
         {
-          "cmd": "whoami",
-          "delay": 0.9
+          "cmd": "whoami"
         },
         {
-          "cmd": "cat now.txt",
-          "delay": 2.2
+          "cmd": "cat now.txt"
         }
-      ],
-      "endDelay": 3.8
+      ]
     },
     "notes": {
       "title": "notes",
@@ -196,15 +173,22 @@
       "foot": "notes · a sample CLI",
       "steps": [
         {
-          "cmd": "notes add \"water the plants\"",
-          "at": 0
+          "cmd": "notes add \"water the plants\""
         },
         {
-          "cmd": "notes ls",
-          "at": 0.3
+          "cmd": "notes ls"
         }
-      ],
-      "endAt": 0.6
+      ]
+    },
+    "tui": {
+      "title": "notes tui",
+      "label": "Terminal demo: the notes board, a small text interface",
+      "foot": "notes tui · a sample board",
+      "steps": [
+        {
+          "cmd": "notes tui"
+        }
+      ]
     },
     "journey": {
       "title": "~/.my-journey.sh",
@@ -212,16 +196,9 @@
       "foot": "three scenes · svg pixels, no images",
       "steps": [
         {
-          "cmd": "~/.my-journey.sh",
-          "at": 0
+          "cmd": "~/.my-journey.sh"
         }
-      ],
-      "sceneAt": [
-        0.12,
-        0.34,
-        0.56
-      ],
-      "endAt": 0.75
+      ]
     },
     "try": {
       "title": "try it yourself",
@@ -233,5 +210,103 @@
         }
       ]
     }
+  },
+  "user": "sample",
+  "fs": {
+    "about.txt": [
+      "Sample summary text. This terminal belongs to a fictional persona.",
+      [
+        [
+          "dim",
+          "every answer here is canned; nothing you type leaves the page"
+        ]
+      ]
+    ],
+    "now.txt": [
+      [
+        [
+          "green",
+          "Sample Role A"
+        ],
+        " · Example Organisation Alpha"
+      ],
+      [
+        [
+          "green",
+          "Sample Degree"
+        ],
+        " · Example University One"
+      ],
+      [
+        [
+          "dim",
+          "reading a sample book, one chapter a week"
+        ]
+      ]
+    ],
+    ".my-journey.sh": [
+      "#!/bin/sh",
+      "# three small scenes, drawn in pixels",
+      "for scene in city books laptop; do",
+      "  show \"$scene\"",
+      "done"
+    ],
+    "notes": {
+      "ideas.md": [
+        "# ideas",
+        "- a lighter grid for the notes page",
+        "- a pixel scene for every season"
+      ],
+      "reading.md": [
+        "# reading",
+        "- a sample book, one chapter a week"
+      ]
+    },
+    "projects": {
+      "notes-cli": {
+        "README.md": [
+          "# notes",
+          "A tiny notes tool: add, ls, done, and a board view (notes tui)."
+        ]
+      },
+      "pixel-scenes": {
+        "README.md": [
+          "# pixel scenes",
+          "24x18 character maps drawn as SVG rects."
+        ]
+      }
+    }
+  },
+  "tui": {
+    "cmd": "notes tui",
+    "columns": [
+      "todo",
+      "doing",
+      "done"
+    ],
+    "start": {
+      "todo": [
+        "water the plants",
+        "sort the bookshelf"
+      ],
+      "doing": [
+        "write the sample notes"
+      ],
+      "done": [
+        "sketch the sample layout"
+      ]
+    },
+    "select": [
+      "todo",
+      0
+    ],
+    "actions": [
+      "down",
+      "up",
+      "move",
+      "move",
+      "left"
+    ],
+    "keys": "↑↓ select · ←→ column · m move · q quit"
   }
 }
