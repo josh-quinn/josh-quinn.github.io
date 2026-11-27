@@ -212,7 +212,7 @@ test('the outline-free input keeps a visible focus cue: a solid cursor and a hig
         cursorFill: c.backgroundColor,
         cursorOutline: `${c.outlineStyle} ${c.outlineWidth}`,
         bar: bar.backgroundColor,
-        screen: getComputedStyle(el.querySelector('.t-screen')!).backgroundColor,
+        screen: getComputedStyle(el).backgroundColor, // the pane's screen colour (--term-bg)
       };
     });
   await expect(input).toBeFocused();
@@ -363,6 +363,15 @@ test('with reduced motion an answer prints at once', async ({ page }) => {
 test('no axe violations with the live prompt open', async ({ page }) => {
   await openFirst(page);
   await type(page, 'help');
+  // Let the islands' entrance fades finish first (finite, time-based animations only).
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.timeline === document.timeline && a.effect?.getTiming().iterations !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page }).include('.term.is-live').analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });

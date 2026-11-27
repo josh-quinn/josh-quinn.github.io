@@ -13,6 +13,17 @@ const clock = (page: Page, row: number) =>
     return a ? { state: a.playState, time: Number(a.currentTime ?? 0) } : null;
   });
 
+/** Wait out the islands' one-off entrance animations (finite, time-based), so clicks land on still panes. */
+const settle = (page: Page) =>
+  page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.timeline === document.timeline && a.effect?.getTiming().iterations !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
+
 const toRow = async (page: Page, row: number, at = 0.5) => {
   await page.locator(`.split-prose[data-row="${row}"]`).evaluate((el, f) => {
     const r = el.getBoundingClientRect();
@@ -116,8 +127,29 @@ test('under reduced motion nothing loops and every pane shows its final frame', 
 test.describe('at 390px', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
+  test('a playing loop never changes the pane size, so the page below does not move', async ({ page }) => {
+    await page.goto('/');
+    await settle(page);
+    await toRow(page, 2);
+    const heights = await page.locator('.term[data-row="2"]').evaluate(
+      (t) =>
+        new Promise<number[]>((done) => {
+          const out: number[] = [];
+          const id = setInterval(() => {
+            out.push(Math.round(t.getBoundingClientRect().height));
+            if (out.length === 80) {
+              clearInterval(id);
+              done(out);
+            }
+          }, 60);
+        }),
+    );
+    expect(new Set(heights).size).toBe(1);
+  });
+
   test('the pane of the section in view loops, and a click pauses it', async ({ page }) => {
     await page.goto('/');
+    await settle(page);
     await toRow(page, 2);
     await expect.poll(() => clock(page, 2)).toMatchObject({ state: 'running' });
     await page.locator('.term[data-row="2"]').click();
