@@ -1,30 +1,38 @@
 /*
- * The home terminal's interactive layer (docs/decisions/0008-home-terminal-js.md), home page
- * only. Progressive enhancement over the CSS demo: click a pane, or press Enter while it has
- * focus, and a prompt takes its place, seeded with that pane's transcript. Scroll on to
- * another chapter, leave the prompt empty for 20s, or press Esc, and the CSS demo comes back.
+ * The home terminal's script (docs/decisions/0008-home-terminal-js.md and its Amendment 1),
+ * home page only. Two jobs:
+ *
+ * 1. Demo controller. An IntersectionObserver finds the section most in view; its pane gets
+ *    .is-active (story mode shows it) and .is-playing, re-added so its CSS loop restarts from
+ *    the start. The loop itself is CSS (a steps() clock in terminal.css); this script never
+ *    animates frame by frame and never maps scroll position to a frame.
+ * 2. Mock terminal. Click a pane, or press Enter on it: its loop pauses where it is
+ *    (.is-paused, animation-play-state) and a prompt appears below the frame. Scroll to another
+ *    section, leave the prompt empty for 20s, or press Esc, and the loop starts again.
  *
  * Canned answers only (src/lib/terminal.ts over src/content/terminal.json). No network, no
- * eval, no innerHTML: every node is built with createElement and textContent or cloned from
- * the page, and nothing typed is kept beyond this page's memory.
+ * eval, no innerHTML: every node is built with createElement and textContent or cloned from the
+ * page, and nothing typed is kept beyond this page's memory.
  */
 import term from '../content/terminal.json';
 import { createSession, type Line, type TermData } from '../lib/terminal';
 
 const IDLE_MS = 20_000;
-const data = term as TermData;
+// JSON imports type the fs tree too loosely for its recursive type: cast through unknown.
+const data = term as unknown as TermData;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const wide = matchMedia('(min-width: 64rem)');
-const storyMode = () =>
-  wide.matches && !reduceMotion.matches && CSS.supports('animation-timeline: view()') && CSS.supports('timeline-scope: --a');
+const storyMode = () => wide.matches && !reduceMotion.matches;
 
 // One session for every pane; it starts where the demos end (the notes list has three notes).
 const session = createSession(data);
 for (const d of Object.values(data.demos)) for (const s of d.steps) session.run(s.cmd, { record: false });
 
 interface Live {
-  live: HTMLElement;
+  log: HTMLElement;
+  form: HTMLElement;
   screen: HTMLElement;
+  feed: HTMLElement | null;
   input: HTMLInputElement;
   stop: () => void;
 }
@@ -47,13 +55,13 @@ function lineNode(line: Line): HTMLElement {
   return el;
 }
 
-function promptLine(cmd: string): HTMLElement {
+function promptLine(where: string, cmd: string): HTMLElement {
   const el = document.createElement('div');
-  el.className = 't-line t-in';
+  el.className = 't-line';
   const ps = document.createElement('span');
   ps.className = 't-ps';
   ps.setAttribute('aria-hidden', 'true');
-  ps.textContent = '$ ';
+  ps.textContent = `${where} $ `;
   const k = document.createElement('kbd');
   k.className = 't-cmd';
   k.textContent = cmd;
@@ -66,9 +74,39 @@ function sceneNodes(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>('[data-demo="journey"] .t-scene')].map((n) => {
     const c = n.cloneNode(true) as HTMLElement;
     c.removeAttribute('style');
+    c.classList.remove('t-r');
     return c;
   });
 }
+
+/* ---- Loops --------------------------------------------------------------------------------- */
+
+/** Start a pane's loop from the beginning (re-adding the class restarts its CSS clock). */
+function play(pane: HTMLElement) {
+  pane.classList.remove('is-playing', 'is-paused');
+  void pane.offsetWidth;
+  pane.classList.add('is-playing');
+}
+
+function stop(pane: HTMLElement) {
+  pane.classList.remove('is-playing', 'is-paused');
+}
+
+/* ---- Line editing -------------------------------------------------------------------------- */
+
+const wordStartBefore = (v: string, i: number) => {
+  let j = i;
+  while (j > 0 && v[j - 1] === ' ') j--;
+  while (j > 0 && v[j - 1] !== ' ') j--;
+  return j;
+};
+
+const wordEndAfter = (v: string, i: number) => {
+  let j = i;
+  while (j < v.length && v[j] === ' ') j++;
+  while (j < v.length && v[j] !== ' ') j++;
+  return j;
+};
 
 /* ---- Live prompt --------------------------------------------------------------------------- */
 
@@ -76,21 +114,17 @@ let uid = 0;
 
 function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement {
   const screen = pane.querySelector<HTMLElement>('.t-screen')!;
-  const live = document.createElement('div');
-  live.className = 't-screen t-live';
+  const feed = screen.querySelector<HTMLElement>('.t-feed');
+  // Pause where it is. The screen keeps its height, so the page does not move when the
+  // unshown rest of the demo folds away under the prompt.
+  if (!sticky && pane.classList.contains('is-playing')) {
+    screen.style.minHeight = `${screen.offsetHeight}px`;
+    pane.classList.add('is-paused');
+  }
 
   const log = document.createElement('div');
-  log.className = 't-feed t-log';
+  log.className = 't-log';
   log.setAttribute('role', 'log');
-
-  // Seed with the pane's final transcript, minus its idle prompt line.
-  const seed = screen.querySelector('.t-feed')?.cloneNode(true) as HTMLElement | undefined;
-  if (seed) {
-    seed.querySelector('.t-end')?.remove();
-    seed.querySelectorAll('[style]').forEach((n) => n.removeAttribute('style'));
-    seed.querySelectorAll('.typed').forEach((n) => n.classList.remove('typed'));
-    log.append(...seed.childNodes);
-  }
 
   const form = document.createElement('form');
   form.className = 't-line t-prompt';
@@ -102,7 +136,11 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
   const ps = document.createElement('span');
   ps.className = 't-ps';
   ps.setAttribute('aria-hidden', 'true');
-  ps.textContent = '$ ';
+  ps.textContent = `${session.prompt()} $ `;
+
+  // The input is the real, labelled control; .t-echo draws its text and the block cursor.
+  const field = document.createElement('span');
+  field.className = 't-field';
   const input = document.createElement('input');
   input.className = 't-input';
   input.id = id;
@@ -111,18 +149,36 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
   input.setAttribute('autocapitalize', 'off');
   input.spellcheck = false;
   input.setAttribute('enterkeyhint', 'send');
-  form.append(label, ps, input);
+  const echo = document.createElement('span');
+  echo.className = 't-echo';
+  echo.setAttribute('aria-hidden', 'true');
+  const before = document.createElement('span');
+  const block = document.createElement('span');
+  block.className = 't-block';
+  const after = document.createElement('span');
+  echo.append(before, block, after);
+  field.append(echo, input);
+  form.append(label, ps, field);
 
-  live.append(log, form);
-  // Keep the pane's size, so typing never pushes the page about (story mode sizes it in CSS).
-  if (!storyMode() || !pane.closest('.story')) {
-    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 18;
-    live.style.height = `${Math.round(Math.min(Math.max(screen.offsetHeight, 12 * rem), 26 * rem))}px`;
-  }
-  screen.hidden = true;
-  screen.after(live);
+  const draw = () => {
+    const v = input.value;
+    const at = input.selectionStart ?? v.length;
+    before.textContent = v.slice(0, at);
+    block.textContent = v[at] ?? ' ';
+    after.textContent = v.slice(at + 1);
+    echo.scrollLeft = input.scrollLeft;
+  };
+  const setLine = (value: string, caret = value.length) => {
+    input.value = value;
+    input.setSelectionRange(caret, caret);
+    draw();
+  };
+  draw();
+
+  screen.append(log, form);
+  screen.classList.add('t-live-on');
   pane.classList.add('is-live');
-  // Announce only what is printed from now on, not the seed.
+  // Announce only what is printed from now on.
   log.setAttribute('aria-live', 'polite');
 
   let idle: ReturnType<typeof setTimeout> | undefined;
@@ -137,7 +193,7 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
   resetIdle();
 
   const scrollEnd = () => {
-    live.scrollTop = live.scrollHeight;
+    screen.scrollTop = screen.scrollHeight;
   };
 
   // Output is appended in order; with motion it prints one line (or scene) at a time.
@@ -158,24 +214,31 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
     }
   };
   const print = (lines: Line[]) => emit(lines.map(lineNode));
+  const clear = () => {
+    const wipe = () => {
+      log.replaceChildren();
+      if (feed) feed.hidden = true;
+    };
+    if (reduceMotion.matches) wipe();
+    else queue = queue.then(wipe);
+  };
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const value = input.value;
-    input.value = '';
+    const where = session.prompt();
+    setLine('');
     // Queued like the output, so a quick second command never lands inside the first's answer.
-    emit([promptLine(value)]);
+    emit([promptLine(where, value)]);
     const out = session.run(value);
+    ps.textContent = `${session.prompt()} $ `;
     pos = session.history.length;
-    if (out.kind === 'clear') {
-      queue = queue.then(() => log.replaceChildren());
-      if (reduceMotion.matches) log.replaceChildren();
-    } else if (out.kind === 'exit') {
+    if (out.kind === 'clear') clear();
+    else if (out.kind === 'exit') {
       leave(pane, true);
       return;
-    } else if (out.kind === 'lines') {
-      print(out.lines);
-    } else {
+    } else if (out.kind === 'lines') print(out.lines);
+    else {
       print([[['dim', data.journey.intro]]]);
       const list = document.createElement('ol');
       list.className = 't-scenes';
@@ -188,27 +251,55 @@ function makeLive(pane: HTMLElement, { sticky = false } = {}): HTMLInputElement 
   });
 
   input.addEventListener('keydown', (e) => {
+    // Cmd/Meta combinations belong to the browser (Cmd+W closes the tab): never intercept them.
+    if (e.metaKey) return;
     resetIdle();
+    const v = input.value;
+    const at = input.selectionStart ?? v.length;
     const history = session.history;
+    const plain = !e.ctrlKey && !e.altKey;
     if (e.key === 'Escape') {
       e.preventDefault();
       // The try-it pane stays live; focus goes back to the pane itself, never to <body>.
       if (sticky) pane.focus({ preventScroll: true });
       else leave(pane, true);
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'Tab' && plain && !e.shiftKey) {
+      // No trap: an empty line, or nothing to complete, lets Tab move focus on.
+      const c = session.complete(v);
+      if (c.kind === 'none') return;
+      e.preventDefault();
+      if (c.kind === 'one') setLine(c.value);
+      else {
+        emit([promptLine(session.prompt(), v), lineNode(c.candidates.join('  '))]);
+        setLine(c.value);
+      }
+    } else if (e.key === 'ArrowUp' && plain) {
       if (!history.length) return;
       e.preventDefault();
       pos = Math.max(0, pos - 1);
-      input.value = history[pos] ?? '';
-    } else if (e.key === 'ArrowDown') {
+      setLine(history[pos] ?? '');
+    } else if (e.key === 'ArrowDown' && plain) {
       e.preventDefault();
       pos = Math.min(history.length, pos + 1);
-      input.value = history[pos] ?? '';
+      setLine(history[pos] ?? '');
+    } else if (e.ctrlKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'l') clear();
+      else if (k === 'a') setLine(v, 0);
+      else if (k === 'e') setLine(v, v.length);
+      else if (k === 'w') setLine(v.slice(0, wordStartBefore(v, at)) + v.slice(at), wordStartBefore(v, at));
+      else if (k === 'u') setLine(v.slice(at), 0);
+      else return;
+      e.preventDefault();
+    } else if (e.altKey && !e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      setLine(v, e.key === 'ArrowLeft' ? wordStartBefore(v, at) : wordEndAfter(v, at));
     }
   });
+  for (const ev of ['input', 'keyup', 'mouseup', 'select', 'focus', 'blur']) input.addEventListener(ev, draw);
   input.addEventListener('input', resetIdle);
 
-  lives.set(pane, { live, screen, input, stop: () => clearTimeout(idle) });
+  lives.set(pane, { log, form, screen, feed, input, stop: () => clearTimeout(idle) });
   scrollEnd();
   return input;
 }
@@ -217,17 +308,23 @@ function leave(pane: HTMLElement, refocus: boolean) {
   const st = lives.get(pane);
   if (!st) return;
   st.stop();
-  st.live.remove();
-  st.screen.hidden = false;
+  st.log.remove();
+  st.form.remove();
+  st.screen.classList.remove('t-live-on');
+  st.screen.style.removeProperty('min-height');
+  if (st.feed) st.feed.hidden = false;
   pane.classList.remove('is-live');
   lives.delete(pane);
+  // The loop starts again from the beginning; a pane that is not on screen stays still.
+  if (Number(pane.dataset.row) === active) play(pane);
+  else stop(pane);
   if (refocus) pane.focus({ preventScroll: true });
 }
 
 /**
- * Hand a live pane back after a scroll (a chapter change, or the pane leaving the viewport).
+ * Hand a live pane back after a scroll (another section, or the pane leaving the viewport).
  * If its prompt had focus, focus stays on a pane rather than dropping to <body>: in story mode
- * the pane now on screen (the handed-back one fades out), otherwise the pane itself.
+ * the pane now on screen (the handed-back one is hidden), otherwise the pane itself.
  */
 function handBack(pane: HTMLElement) {
   const st = lives.get(pane);
@@ -242,14 +339,14 @@ function handBack(pane: HTMLElement) {
 /* ---- Wiring -------------------------------------------------------------------------------- */
 
 const panes = [...document.querySelectorAll<HTMLElement>('.story .term')];
-const chapters = [...document.querySelectorAll<HTMLElement>('.story > .split-prose')];
 const tryPane = document.querySelector<HTMLElement>('.term[data-demo="try"]');
+let active = 0;
 
 document.documentElement.classList.add('term-js');
 
 const goLive = (pane: HTMLElement) => {
   for (const p of panes) if (p !== pane) leave(p, false);
-  makeLive(pane).focus({ preventScroll: true });
+  (lives.get(pane)?.input ?? makeLive(pane)).focus({ preventScroll: true });
 };
 
 function arm(pane: HTMLElement) {
@@ -258,11 +355,7 @@ function arm(pane: HTMLElement) {
   pane.setAttribute('aria-label', `${name}. Interactive: press Enter to type commands.`);
   pane.addEventListener('click', (e) => {
     if ((e.target as Element).closest('a')) return;
-    const st = lives.get(pane);
-    if (st) {
-      if (!String(getSelection())) st.input.focus({ preventScroll: true });
-      return;
-    }
+    if (lives.has(pane) && String(getSelection())) return;
     goLive(pane);
   });
   pane.addEventListener('keydown', (e) => {
@@ -277,33 +370,54 @@ function arm(pane: HTMLElement) {
 panes.forEach(arm);
 
 // In story mode only the pane on screen is in the tab order; otherwise every pane is.
-let active = 1;
 function setFocusable() {
   const story = storyMode();
   for (const p of panes) p.tabIndex = !story || Number(p.dataset.row) === active ? 0 : -1;
 }
-setFocusable();
 
-// The chapter crossing the middle of the viewport is the active one.
-const crossing = new Set<number>();
+/** Make a section active: show its pane and restart its loop; the other panes stand still. */
+function setActive(next: number) {
+  if (next === active) return;
+  active = next;
+  for (const p of panes) {
+    const on = Number(p.dataset.row) === active;
+    p.classList.toggle('is-active', on);
+    if (lives.has(p)) {
+      if (!on) handBack(p);
+    } else if (on) play(p);
+    else stop(p);
+  }
+  setFocusable();
+}
+
+// The section most in view is the active one: its pane and its prose, by visible height.
+const seen = new Map<Element, number>();
+const pick = () => {
+  const score = new Map<number, number>();
+  for (const [el, h] of seen) {
+    const row = Number((el as HTMLElement).dataset.row);
+    score.set(row, (score.get(row) ?? 0) + h);
+  }
+  let best = 0;
+  let most = 0;
+  for (const [row, h] of score) if (h > most || (h === most && h > 0 && row < best)) [best, most] = [row, h];
+  if (best) return best;
+  // Above the story the first section counts as active; below it, none does.
+  return (document.querySelector('.story')?.getBoundingClientRect().top ?? 0) > 0 ? 1 : 0;
+};
 const io = new IntersectionObserver(
   (entries) => {
-    for (const e of entries) {
-      const row = Number((e.target as HTMLElement).dataset.row);
-      if (e.isIntersecting) crossing.add(row);
-      else crossing.delete(row);
-    }
-    const above = (document.querySelector('.story')?.getBoundingClientRect().top ?? 0) > innerHeight / 2;
-    const next = crossing.size ? Math.max(...crossing) : above ? 1 : 0;
-    if (next === active) return;
-    active = next || active;
-    setFocusable();
-    // Hand back to the CSS demo once the reader moves on to another chapter.
-    for (const p of panes) if (lives.has(p) && Number(p.dataset.row) !== next) handBack(p);
+    for (const e of entries) seen.set(e.target, e.isIntersecting ? e.intersectionRect.height : 0);
+    setActive(pick());
   },
-  { rootMargin: '-50% 0px -50% 0px' },
+  { threshold: Array.from({ length: 21 }, (_, i) => i / 20) },
 );
-chapters.forEach((c) => io.observe(c));
+for (const el of document.querySelectorAll<HTMLElement>('.story > .split-media, .story > .split-prose')) {
+  const row = el.matches('.split-media') ? el.querySelector<HTMLElement>('.term')?.dataset.row : el.dataset.row;
+  if (row) el.dataset.row = row;
+  io.observe(el);
+}
+setActive(1);
 
 // A live pane also hands back once it leaves the viewport (narrow layouts, or past the story).
 const gone = new IntersectionObserver((entries) => {
