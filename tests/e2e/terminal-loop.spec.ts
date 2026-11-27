@@ -94,6 +94,40 @@ test('clicking a pane pauses its loop exactly where it is, with the prompt below
   expect(prompt!.y - (feed!.y + feed!.height)).toBeLessThan(60);
 });
 
+test.describe('pausing mid-loop puts the prompt right under what is shown', () => {
+  for (const [row, waits] of [[1, [300, 900, 1700, 2600]], [2, [700, 2000, 3200]], [4, [900, 1800, 2700, 3600, 4800]]] as const) {
+    for (const ms of waits) {
+      test(`section ${row}, paused after ${ms}ms`, async ({ page }) => {
+        await page.goto('/');
+        await settle(page);
+        if (row !== 1) await toRow(page, row);
+        else await page.evaluate(() => scrollTo(0, 0));
+        const pane = page.locator(`.term[data-row="${row}"]`);
+        await page.waitForTimeout(ms);
+        await pane.click();
+        await expect(pane).toHaveClass(/is-paused/);
+        const gap = await pane.evaluate((el) => {
+          // Shown: it and every ancestor up to the feed has height and is not faded out.
+          const isShown = (n: HTMLElement) => {
+            for (let a: HTMLElement | null = n; a && !a.classList.contains('t-feed'); a = a.parentElement) {
+              if (a.getBoundingClientRect().height === 0 || Number(getComputedStyle(a).opacity) < 0.5 || !a.checkVisibility()) return false;
+            }
+            return true;
+          };
+          const shown = [...el.querySelectorAll<HTMLElement>('.t-feed .t-line, .t-feed .t-scene, .t-feed .t-frame')].filter(isShown);
+          const prompt = el.querySelector('.t-prompt')!.getBoundingClientRect().top;
+          const lineHeight = parseFloat(getComputedStyle(el.querySelector('.t-screen')!).lineHeight);
+          const top = el.querySelector('.t-screen')!.getBoundingClientRect().top + parseFloat(getComputedStyle(el.querySelector('.t-screen')!).paddingTop);
+          const bottom = shown.length ? Math.max(...shown.map((n) => n.getBoundingClientRect().bottom)) : top;
+          return { gap: prompt - bottom, lineHeight };
+        });
+        expect(gap.gap).toBeGreaterThanOrEqual(-1);
+        expect(gap.gap).toBeLessThanOrEqual(gap.lineHeight);
+      });
+    }
+  }
+});
+
 test('handing back (Esc) restarts the loop', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(1600);

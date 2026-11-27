@@ -55,11 +55,14 @@
 
 /* ----- The pane ------------------------------------------------------------------------ */
 
+/* The pane itself never scrolls (overflow: clip): when output grows, only the screen under the
+ * caption bar scrolls, so the bar stays in place. */
 figure.term {
   display: flex;
   flex-direction: column;
   min-width: 0;
   margin: 0;
+  overflow: clip;
   background-color: var(--term-bg);
   color: var(--term-fg);
 }
@@ -192,8 +195,10 @@ figure.term {
 
 /* ----- Pixel scenes -------------------------------------------------------------------- */
 
+/* Spacing sits on the top of each scene and of the trailing line, so a paused loop can fold
+ * an unshown scene's space away with it (see "The demo loop"). */
 .t-scenes {
-  margin: var(--space-2) 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -203,7 +208,11 @@ figure.term {
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-4);
   align-items: center;
-  margin: 0 0 var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+.t-outro {
+  margin: var(--space-2) 0 0;
 }
 
 .px-scene {
@@ -296,6 +305,7 @@ figure.term {
 
 .t-tui {
   margin: var(--space-2) 0 0;
+  overflow-x: auto;
 }
 
 /* Only the final frame exists outside a playing loop; the others are aria-hidden. */
@@ -305,6 +315,7 @@ figure.term {
 
 .t-board {
   display: grid;
+  min-width: 32ch; /* below this the board scrolls sideways inside the pane, never squeezes */
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
 }
@@ -394,8 +405,15 @@ figure.term {
   }
 
   .is-paused .t-r {
+    min-height: 0;
     max-height: calc(var(--on) * 40em);
     overflow: hidden;
+  }
+
+  .is-paused .t-scene.t-r,
+  .is-paused .t-outro.t-r,
+  .is-paused .t-tui.t-r {
+    margin-top: calc(var(--on) * var(--space-2));
   }
 
   /* A command types one character a tick. */
@@ -457,7 +475,8 @@ figure.term {
     transition: opacity var(--duration-fast) var(--ease);
   }
 
-  .term-js .story .term .t-screen {
+  /* The story pane has a fixed height: its screen clips the demo, and scrolls once live. */
+  .term-js .story .term .t-screen:not(.t-live-on) {
     overflow: clip;
   }
 

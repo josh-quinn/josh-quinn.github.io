@@ -360,10 +360,11 @@ function focusTarget(pane: HTMLElement): HTMLElement | null {
   const onScreen = panes.find((p) => Number(p.dataset.row) === shownRow);
   if (onScreen && shown(onScreen)) return onScreen;
   const story = document.querySelector('.story');
-  const after = [...document.querySelectorAll<HTMLElement>(FOCUSABLE)].find(
+  const after = [...document.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
     (el) => story && story.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !story.contains(el) && el.checkVisibility({ visibilityProperty: true }),
   );
-  return after ?? tryPane;
+  // Prefer one the reader can see now, so focus does not scroll the page away.
+  return after.find(shown) ?? after[0] ?? tryPane;
 }
 
 /**

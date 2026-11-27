@@ -320,6 +320,70 @@ test('scrolling to another chapter hands back to the CSS demo', async ({ page })
   await expect(pane).not.toHaveClass(/is-live/);
 });
 
+/** The caption bar stays inside the pane's box, and the prompt inside the screen's, once output overflows. */
+async function expectBarAndPromptInView(page: Page, row: number) {
+  const pane = page.locator(`.term[data-row="${row}"]`);
+  for (const cmd of ['help', 'll', 'help', 'notes ls', 'help']) await type(page, cmd);
+  await expect(pane.locator('[role="log"]')).toContainText('Esc leaves');
+  await expect
+    .poll(() =>
+      pane.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        const bar = el.querySelector('.t-bar')!.getBoundingClientRect();
+        const screen = el.querySelector('.t-screen')!;
+        const s = screen.getBoundingClientRect();
+        const prompt = el.querySelector('.t-prompt')!.getBoundingClientRect();
+        return {
+          overflowing: screen.scrollHeight > screen.clientHeight,
+          paneScrolled: el.scrollTop,
+          barInside: bar.top >= box.top - 1 && bar.bottom <= box.bottom + 1,
+          promptInside: prompt.top >= s.top - 1 && prompt.bottom <= s.bottom + 1,
+        };
+      }),
+    )
+    .toEqual({ overflowing: true, paneScrolled: 0, barInside: true, promptInside: true });
+}
+
+test('with output taller than the pane, only the screen scrolls: the caption bar stays put', async ({ page }) => {
+  await openFirst(page);
+  await expectBarAndPromptInView(page, 1);
+});
+
+test.describe('the notes TUI at 390px', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('is readable and never clipped: text at 11px or more, wide content scrolls inside the pane', async ({ page }) => {
+    await page.goto('/');
+    const tui = page.locator('.term[data-demo="tui"] .t-tui');
+    await tui.scrollIntoViewIfNeeded();
+    const r = await tui.evaluate((el) => {
+      const items = [...el.querySelectorAll('.t-final li, .t-final .t-col-h, .t-final .t-tui-foot')] as HTMLElement[];
+      const pane = el.closest('.term')!.getBoundingClientRect();
+      const box = el.getBoundingClientRect();
+      return {
+        minFont: Math.min(...items.map((i) => parseFloat(getComputedStyle(i).fontSize))),
+        clippedText: items.filter((i) => i.scrollWidth > i.clientWidth + 1).length,
+        insidePane: box.left >= pane.left - 1 && box.right <= pane.right + 1,
+        reachable: el.scrollWidth <= el.clientWidth + 1 || ['auto', 'scroll'].includes(getComputedStyle(el).overflowX),
+      };
+    });
+    expect(r.minFont).toBeGreaterThanOrEqual(11);
+    expect(r.clippedText).toBe(0);
+    expect(r.insidePane).toBe(true);
+    expect(r.reachable).toBe(true);
+    expect(await tui.evaluate((el) => getComputedStyle(el).overflowX)).toBe('auto');
+  });
+});
+
+test.describe('at 390px, live output', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('keeps the caption bar in place while the screen scrolls', async ({ page }) => {
+    await openFirst(page);
+    await expectBarAndPromptInView(page, 1);
+  });
+});
+
 test.describe('scrolling down while typing (story mode) keeps focus on a visible pane, never <body>', () => {
   for (const [from, to] of [[1, 2], [1, 3], [2, 3]]) {
     test(`from section ${from} to section ${to}, by mouse wheel`, async ({ page }) => {
@@ -351,9 +415,15 @@ test.describe('scrolling down while typing (story mode) keeps focus on a visible
     await expect(pane.locator('.t-input')).toHaveCount(0);
     const focus = await page.evaluate(() => {
       const a = document.activeElement!;
-      return { body: a === document.body, visible: a.checkVisibility({ visibilityProperty: true }), tab: (a as HTMLElement).tabIndex };
+      const r = a.getBoundingClientRect();
+      return {
+        body: a === document.body,
+        visible: a.checkVisibility({ visibilityProperty: true }),
+        inView: r.bottom > 0 && r.top < innerHeight,
+        tab: (a as HTMLElement).tabIndex,
+      };
     });
-    expect(focus).toEqual({ body: false, visible: true, tab: 0 });
+    expect(focus).toEqual({ body: false, visible: true, inView: true, tab: 0 });
   });
 });
 

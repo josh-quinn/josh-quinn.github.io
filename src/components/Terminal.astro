@@ -88,7 +88,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
           ))}
         </ol>
       )}
-      {scenes.length > 0 && journey && <div class="t-line t-dim t-r" style={`--t: ${plan.after}`}>{journey.outro}</div>}
+      {scenes.length > 0 && journey && <div class="t-line t-dim t-outro t-r" style={`--t: ${plan.after}`}>{journey.outro}</div>}
       {frames.length > 0 && (
         <div class="t-tui t-r" style={`--t: ${plan.frames[0].start}`}>
           {frames.map((f, i) => {
