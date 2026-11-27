@@ -305,7 +305,6 @@ figure.term {
 
 .t-tui {
   margin: var(--space-2) 0 0;
-  overflow-x: auto;
 }
 
 /* Only the final frame exists outside a playing loop; the others are aria-hidden. */
@@ -313,10 +312,11 @@ figure.term {
   display: none;
 }
 
+/* Three columns side by side while each gets 12ch; narrower (a phone with zoomed text), they
+ * stack, so the board never scrolls sideways and its words never break mid-letter. */
 .t-board {
   display: grid;
-  min-width: 32ch; /* below this the board scrolls sideways inside the pane, never squeezes */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(12ch, 100%), 1fr));
   gap: var(--space-2);
 }
 
@@ -330,6 +330,7 @@ figure.term {
 
 .t-col-h {
   display: block;
+  overflow-wrap: anywhere;
   margin: 0 0 var(--space-1);
   padding: 0 0 var(--space-1);
   border-bottom: var(--border);

@@ -39,3 +39,24 @@ test('no axe violations on / under reduced motion, with every terminal pane visi
   const summary = violations.map((v) => `${v.id} (${v.impact}): ${v.help} [${v.nodes.map((n) => n.target.join(' ')).join(', ')}]`);
   expect(summary).toEqual([]);
 });
+
+// WCAG 1.4.4: text-only zoom to 200% at a phone width, in both motion modes.
+for (const motion of ['no-preference', 'reduce'] as const) {
+  test(`no axe violations on / at 390px with the root font at 200%, motion ${motion}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: motion });
+    await page.goto('/');
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.timeline === document.timeline && a.effect?.getTiming().iterations !== Infinity)
+          .map((a) => a.finished),
+      ),
+    );
+    const { violations } = await new AxeBuilder({ page }).analyze();
+    const summary = violations.map((v) => `${v.id} (${v.impact}): ${v.help} [${v.nodes.map((n) => n.target.join(' ')).join(', ')}]`);
+    expect(summary).toEqual([]);
+  });
+}

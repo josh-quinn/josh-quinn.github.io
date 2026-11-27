@@ -352,27 +352,30 @@ test('with output taller than the pane, only the screen scrolls: the caption bar
 test.describe('the notes TUI at 390px', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('is readable and never clipped: text at 11px or more, wide content scrolls inside the pane', async ({ page }) => {
-    await page.goto('/');
-    const tui = page.locator('.term[data-demo="tui"] .t-tui');
-    await tui.scrollIntoViewIfNeeded();
-    const r = await tui.evaluate((el) => {
-      const items = [...el.querySelectorAll('.t-final li, .t-final .t-col-h, .t-final .t-tui-foot')] as HTMLElement[];
-      const pane = el.closest('.term')!.getBoundingClientRect();
-      const box = el.getBoundingClientRect();
-      return {
-        minFont: Math.min(...items.map((i) => parseFloat(getComputedStyle(i).fontSize))),
-        clippedText: items.filter((i) => i.scrollWidth > i.clientWidth + 1).length,
-        insidePane: box.left >= pane.left - 1 && box.right <= pane.right + 1,
-        reachable: el.scrollWidth <= el.clientWidth + 1 || ['auto', 'scroll'].includes(getComputedStyle(el).overflowX),
-      };
+  for (const zoom of ['100%', '200%']) {
+    test(`is readable and never clipped or scrolled sideways, root font ${zoom}`, async ({ page }) => {
+      await page.goto('/');
+      if (zoom !== '100%') await page.addStyleTag({ content: `html { font-size: ${zoom} !important; }` });
+      const tui = page.locator('.term[data-demo="tui"] .t-tui');
+      await tui.scrollIntoViewIfNeeded();
+      const r = await tui.evaluate((el) => {
+        const items = [...el.querySelectorAll('.t-final li, .t-final .t-col-h, .t-final .t-tui-foot')] as HTMLElement[];
+        const pane = el.closest('.term')!.getBoundingClientRect();
+        const box = el.getBoundingClientRect();
+        return {
+          minFont: Math.min(...items.map((i) => parseFloat(getComputedStyle(i).fontSize))),
+          clippedText: items.filter((i) => i.scrollWidth > i.clientWidth + 1).length,
+          insidePane: box.left >= pane.left - 1 && box.right <= pane.right + 1,
+          sideways: el.scrollWidth > el.clientWidth + 1,
+        };
+      });
+      expect(r.minFont).toBeGreaterThanOrEqual(11);
+      expect(r.clippedText).toBe(0);
+      expect(r.insidePane).toBe(true);
+      // The board wraps to fit: no sideways scrolling (a scroll region with nothing focusable fails axe).
+      expect(r.sideways).toBe(false);
     });
-    expect(r.minFont).toBeGreaterThanOrEqual(11);
-    expect(r.clippedText).toBe(0);
-    expect(r.insidePane).toBe(true);
-    expect(r.reachable).toBe(true);
-    expect(await tui.evaluate((el) => getComputedStyle(el).overflowX)).toBe('auto');
-  });
+  }
 });
 
 test.describe('at 390px, live output', () => {
