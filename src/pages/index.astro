@@ -2,14 +2,15 @@
 import Base from '../layouts/Base.astro';
 import Terminal, { type PlayedStep } from '../components/Terminal.astro';
 import term from '../content/terminal.json';
-import { createSession, type Demo, type TermData } from '../lib/terminal';
+import { createSession, tuiFrames, type Demo, type TermData } from '../lib/terminal';
 
 // Every terminal transcript is printed by the same canned session the live prompt uses
 // (src/lib/terminal.ts), run over the fictional content in src/content/terminal.json.
-const data = term as TermData;
+// JSON imports type the fs tree too loosely for its recursive type: cast through unknown.
+const data = term as unknown as TermData;
 const session = createSession(data);
 const play = (demo: Demo): PlayedStep[] => demo.steps.map((s) => ({ ...s, out: session.run(s.cmd, { record: false }) }));
-const { whoami, notes, journey } = data.demos;
+const { whoami, notes, tui, journey } = data.demos;
 const tryIt = data.demos.try;
 const pad = (n: number) => String(n).padStart(2, '0');
 ---
@@ -27,7 +28,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <h1>Josh Quinn</h1>
         <p class="reveal d2">
           Placeholder. A short CV, notes and the odd project will live here. For now a small
-          terminal tells the story: it types as you scroll, and you can type into it yourself.
+          terminal tells the story, one short loop for each part of the page, and you can type
+          into it yourself.
         </p>
         <p class="reveal d3 links"><a class="bracket" href="#colophon">Read the colophon</a></p>
       </div>
@@ -38,15 +40,13 @@ const pad = (n: number) => String(n).padStart(2, '0');
             name="whoami"
             row={1}
             pos="first"
-            onLoad
             title={whoami.title}
             label={whoami.label}
             foot={whoami.foot}
             steps={play(whoami)}
-            endDelay={whoami.endDelay}
           />
         </div>
-        <div class="split-prose" data-row="1" style="--row: 1; --tl: --ch-1">
+        <div class="split-prose" data-row="1" style="--row: 1">
           <section class="reveal d4" aria-labelledby="who">
             <span class="label">Who</span>
             <h2 id="who">A sample person, for now</h2>
@@ -74,10 +74,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
             label={notes.label}
             foot={notes.foot}
             steps={play(notes)}
-            endAt={notes.endAt}
           />
         </div>
-        <div class="split-prose" data-row="2" style="--row: 2; --tl: --ch-2">
+        <div class="split-prose" data-row="2" style="--row: 2">
           <section aria-labelledby="notes">
             <span class="label">Projects</span>
             <h2 id="notes">A small notes tool</h2>
@@ -86,26 +85,48 @@ const pad = (n: number) => String(n).padStart(2, '0');
               tool that adds a note, lists the notes as a table and marks them done. It is fictional,
               and so are its notes.
             </p>
-            <p>The terminal runs it as you scroll: <code>notes add</code>, then <code>notes ls</code>.</p>
+            <p>The terminal runs it in a loop: <code>notes add</code>, then <code>notes ls</code>.</p>
           </section>
         </div>
 
         <div class="split-media" style="--row: 3">
           <Terminal
-            name="journey"
+            name="tui"
             row={3}
+            pos="mid"
+            title={tui.title}
+            label={tui.label}
+            foot={tui.foot}
+            steps={play(tui).map((s) => ({ ...s, out: { kind: 'lines' as const, lines: [] } }))}
+            frames={tuiFrames(data.tui)}
+          />
+        </div>
+        <div class="split-prose" data-row="3" style="--row: 3">
+          <section aria-labelledby="board">
+            <span class="label">Projects</span>
+            <h2 id="board">The same notes, as a board</h2>
+            <p>
+              Placeholder. The notes tool also has a small text interface: three columns for todo,
+              doing and done, a highlight you move with the arrow keys, and one key to move a note
+              along. The terminal plays a short session with it.
+            </p>
+          </section>
+        </div>
+
+        <div class="split-media" style="--row: 4">
+          <Terminal
+            name="journey"
+            row={4}
             pos="last"
             title={journey.title}
             label={journey.label}
             foot={journey.foot}
             steps={play(journey)}
-            endAt={journey.endAt}
             scenes={data.journey.scenes}
-            sceneAt={journey.sceneAt}
             journey={{ intro: data.journey.intro, outro: data.journey.outro }}
           />
         </div>
-        <div class="split-prose" data-row="3" style="--row: 3; --tl: --ch-3">
+        <div class="split-prose" data-row="4" style="--row: 4">
           <section aria-labelledby="journey">
             <span class="label">About</span>
             <h2 id="journey">The journey so far</h2>
@@ -143,9 +164,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <span class="label">Colophon</span>
         <h2 id="colophon">How it is made</h2>
         <p>
-          Static pages, one serif and two monos, set on paper drawn in CSS. The terminal's motion is
-          CSS alone and stops when you ask for reduced motion. One small script lets you type into
-          it; without the script, the transcripts above are the whole page.
+          Static pages, one serif and two monos, set on paper drawn in CSS. The terminal's loops are
+          CSS and stop when you ask for reduced motion. One small script starts the loop for the part
+          you are reading and lets you type into it; without the script, the transcripts above are
+          the whole page.
         </p>
         <dl class="facts">
           <dt>Type</dt>

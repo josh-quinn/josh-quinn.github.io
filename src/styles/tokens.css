@@ -115,7 +115,11 @@
   --text-term-small: 0.72rem;
   --leading-term: 1.5;
   --term-h: clamp(22rem, calc(100vh - 8rem), 28rem); /* the sticky story pane's height */
-  --term-char: 70ms; /* one typed character */
+  --term-tick: 70ms; /* one tick of a demo loop: one typed character */
+  --term-bar-on: var(--term-blue); /* the caption bar of the focused pane, 5.5:1 against --term-bar */
+  --term-bar-on-fg: var(--term-bg); /* its text, 5.7:1 */
+  --term-sel: var(--term-blue); /* the TUI's selected row */
+  --term-sel-fg: var(--term-bg); /* its text, 5.7:1 */
   --term-story-gap: var(--space-7); /* the story's column gap; the first pane's centring uses it */
 
   /* Pixel scenes (the journey demo): soft pastels that sit on the paper. Decorative only. */
