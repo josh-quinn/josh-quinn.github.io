@@ -214,6 +214,21 @@ describe('tab completion', () => {
     expect(c('notes a')).toEqual({ kind: 'one', value: 'notes add ' });
   });
 
+  it('completes the arguments a command takes after a trailing space', () => {
+    expect(c('cat ')).toEqual({ kind: 'many', value: 'cat ', candidates: ['about.txt', 'notes/', 'now.txt', 'projects/'] });
+    expect(c('ls ')).toEqual({ kind: 'many', value: 'ls ', candidates: ['about.txt', 'notes/', 'now.txt', 'projects/'] });
+    expect(c('cd ')).toEqual({ kind: 'many', value: 'cd ', candidates: ['notes/', 'projects/'] });
+    expect(c('cd n')).toEqual({ kind: 'one', value: 'cd notes/' });
+    expect(c('cd projects/')).toEqual({ kind: 'many', value: 'cd projects/', candidates: ['notes-cli/', 'pixel-scenes/'] });
+    expect(c('notes ')).toEqual({ kind: 'many', value: 'notes ', candidates: ['add', 'done', 'ls', 'tui'] });
+  });
+
+  it('offers nothing for commands that take no file argument', () => {
+    for (const line of ['whoami ', 'clear ', 'help ', 'pwd ', 'history ', 'notes add ', 'notes ls ', './my-journey.sh ', 'frobnicate ']) {
+      expect(c(line), line).toEqual({ kind: 'none' });
+    }
+  });
+
   it('reports no completion so Tab can move focus on', () => {
     expect(c('')).toEqual({ kind: 'none' });
     expect(c('xyz')).toEqual({ kind: 'none' });

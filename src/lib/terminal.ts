@@ -81,6 +81,8 @@ const isDir = (n: FsNode | undefined): n is { [name: string]: FsNode } => !!n &&
 
 export const COMMANDS = ['cat', 'cd', 'clear', 'exit', 'help', 'history', 'll', 'ls', 'notes', 'pwd', 'whoami'];
 const NOTES_SUBS = ['add', 'done', 'ls', 'tui'];
+/** What each command takes as an argument, for Tab completion; anything else takes nothing. */
+const ARGS: Record<string, 'path' | 'dir'> = { cat: 'path', ls: 'path', ll: 'path', cd: 'dir' };
 const JOURNEY_NAMES = new Set(['./my-journey.sh', '~/.my-journey.sh', './.my-journey.sh', '.my-journey.sh', 'my-journey.sh']);
 const STATUS_TONE: Record<Note['status'], Tone> = { todo: 'blue', doing: 'amber', done: 'green' };
 
@@ -248,7 +250,8 @@ export function createSession(data: TermData) {
     }
   }
 
-  /** Tab completion for the line: commands first, notes subcommands, then paths. */
+  /** Tab completion for the line: a command, then what that command takes (notes
+   * subcommands, paths, or directories only for cd). */
   function complete(line: string): Completion {
     if (!line.trim()) return { kind: 'none' };
     const partial = /(\S*)$/.exec(line)![1];
@@ -258,15 +261,22 @@ export function createSession(data: TermData) {
     let shownAs: string[];
     if (!words.length && !partial.includes('/')) {
       cands = shownAs = COMMANDS.filter((c) => c.startsWith(partial));
-    } else if (words.length === 1 && words[0] === 'notes' && !partial.includes('/')) {
+    } else if (words[0] === 'notes') {
+      if (words.length > 1 || partial.includes('/')) return { kind: 'none' };
       cands = shownAs = NOTES_SUBS.filter((c) => c.startsWith(partial));
     } else {
+      // A first word with a slash is a path (./.my-journey.sh); after a command, its argument.
+      const takes = words.length ? ARGS[words[0]] : 'path';
+      if (!takes) return { kind: 'none' };
       const cut = partial.lastIndexOf('/') + 1;
       const dir = partial.slice(0, cut);
       const base = partial.slice(cut);
       const node = lookup(resolve(dir || '.'));
       if (!isDir(node)) return { kind: 'none' };
-      const names = Object.keys(node).sort().filter((n) => n.startsWith(base) && (base.startsWith('.') || !n.startsWith('.')));
+      const names = Object.keys(node)
+        .sort()
+        .filter((n) => n.startsWith(base) && (base.startsWith('.') || !n.startsWith('.')))
+        .filter((n) => takes === 'path' || isDir(node[n]));
       shownAs = names.map((n) => shown(n, node[n]));
       cands = shownAs.map((n) => dir + n);
     }
